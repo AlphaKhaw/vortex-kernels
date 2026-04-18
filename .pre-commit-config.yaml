@@ -2,6 +2,7 @@
 # Install: `pre-commit install` (one-time).
 # Run manually: `pre-commit run --all-files`.
 repos:
+  # Pre-commit hooks for code hygiene
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
@@ -17,6 +18,7 @@ repos:
       - id: mixed-line-ending
         args: ['--fix=auto']
 
+  # Ruff for Python linting and formatting
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.11.4
     hooks:
@@ -24,6 +26,13 @@ repos:
         args: [--select, I, --fix, --unsafe-fixes]
       - id: ruff-format
 
+  # UV lock file management
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 0.5.7
+    hooks:
+      - id: uv-lock
+        # Only run if pyproject.toml was modified
+        files: ^pyproject\.toml$
 ci:
   autofix_commit_msg: '[pre-commit.ci] Auto format from pre-commit.com hooks'
   autoupdate_commit_msg: '[pre-commit.ci] pre-commit autoupdate'
