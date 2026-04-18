@@ -1,0 +1,92 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vortex-kernels"
+version = "0.1.0"
+description = "Optimized Triton inference kernels for Vortex/Evo2 (fills vortex/ops/hc*_interface.py)"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+license = { file = "LICENSE" }
+authors = [
+    { name = "AlphaKhaw", email = "alphakhaw@gmail.com" }
+]
+dependencies = [
+    "einops==0.8.1",
+    "numpy",
+    "packaging",
+    "pyyaml",
+    "torch>=2.7,<2.8",
+    "triton>=3.0; sys_platform == 'linux'",
+    "vtx>=1.0.8",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "pytest-benchmark",
+    "ruff>=0.6",
+    "pyright>=1.1",
+    "nvtx; sys_platform == 'linux'",
+]
+bench = ["matplotlib", "pandas", "torch-tb-profiler"]
+evo2 = ["evo2>=0.5.3", "biopython", "huggingface_hub>=0.24,<0.27"]
+
+[project.urls]
+Homepage = "https://github.com/Zymrael/vortex"
+Issues = "https://github.com/Zymrael/vortex/issues/16"
+
+[tool.setuptools.packages.find]
+include = ["vortex_kernels*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "gpu: test requires a CUDA device",
+    "slow: test takes >10s",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning:torch\\..*",
+]
+
+[tool.ruff]
+line-length = 100
+indent-width = 4
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "I",      # isort
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "UP",     # pyupgrade
+    "SIM",    # flake8-simplify
+    "NPY",    # NumPy-specific rules
+    "PERF",   # perflint
+]
+ignore = [
+    "E501",   # line length handled by formatter
+]
+fixable = ["ALL"]
+unfixable = []
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+docstring-code-format = true
+docstring-code-line-length = "dynamic"
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
+typeCheckingMode = "standard"
+pythonVersion = "3.12"
+include = ["vortex_kernels", "tests", "benchmarks", "scripts"]
+exclude = ["**/__pycache__", ".venv", ".pixi"]

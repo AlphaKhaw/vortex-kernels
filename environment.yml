@@ -1,0 +1,14 @@
+name: evo2
+channels:
+  - nvidia
+  - conda-forge
+dependencies:
+  - python=3.12
+  - cuda-nvcc=12.8
+  - cuda-cudart-dev=12.8
+  - cuda-version=12.8
+  - transformer-engine-torch=2.3.0
+  - ninja
+  - packaging
+  - git
+  - pip
