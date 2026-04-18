@@ -1,4 +1,5 @@
 """Import-level smoke tests. Run on any platform (no GPU required)."""
+
 from __future__ import annotations
 
 import pytest

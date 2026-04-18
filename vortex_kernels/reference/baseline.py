@@ -5,6 +5,7 @@ upstream, update these copies in a separate commit and re-run the full test suit
 
 Sourced from vortex/model/engine.py at commit <pinned-on-setup>.
 """
+
 from __future__ import annotations
 
 # TODO: copy verbatim once Lambda env is up and vortex is pinned:

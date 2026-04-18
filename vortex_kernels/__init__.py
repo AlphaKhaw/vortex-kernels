@@ -2,6 +2,7 @@
 
 Third-party. Not affiliated with Arc Institute or the Vortex core team.
 """
+
 from __future__ import annotations
 
 import os
