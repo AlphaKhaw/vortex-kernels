@@ -4,6 +4,7 @@ Call sites are gated on individual kernels being implemented — the function
 returns the list of patches actually applied. Safe to call multiple times
 (idempotent) and safe when vortex is missing (logs and returns empty list).
 """
+
 from __future__ import annotations
 
 import logging
