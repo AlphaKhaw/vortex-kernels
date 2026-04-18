@@ -205,3 +205,18 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Project-specific
+.DS_Store
+*.pt
+*.safetensors
+.hf_cache/
+profiler_output/
+chrome_trace_*.json
+# Keep results/*.json committed for reproducibility; ignore scratch
+results/scratch/
+results/**/*.tmp
+
+# Claude Code project-local instructions (not for public repo)
+CLAUDE.md
+
