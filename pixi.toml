@@ -6,6 +6,17 @@ authors = ["AlphaKhaw"]
 channels = ["nvidia", "conda-forge"]
 platforms = ["linux-64"]
 
+# Declare the host CUDA driver capability so conda's __cuda virtual package
+# resolves during solve. Without this, GPU-built packages (pytorch cuda*,
+# transformer-engine-torch) can't find the `__cuda *` dependency and the
+# solve fails with "for which no candidates were found".
+#
+# "12" matches any CUDA 12.x driver (forward-compatible). Tighten to a
+# specific minor (e.g., "12.9") only if a package requires it and the host
+# actually supplies that version — check with `nvidia-smi` top-right.
+[system-requirements]
+cuda = "12"
+
 # Conda-forge / nvidia binaries.
 #
 # Why pytorch is a conda dep, not a pypi dep: transformer-engine-torch on
