@@ -47,7 +47,7 @@ git = "*"
 pip = "*"
 
 [pypi-options]
-no-build-isolation = ["flash-attn", "transformer_engine", "transformer_engine_torch", "flash-fft-conv"]
+no-build-isolation = ["flash-attn", "transformer_engine", "transformer_engine_torch"]
 
 [pypi-dependencies]
 flash-attn = "==2.8.0.post2"
@@ -68,12 +68,13 @@ matplotlib = "*"
 pandas = "*"
 torch-tb-profiler = "*"
 
-[feature.flashfft.pypi-dependencies]
-flash-fft-conv = { git = "https://github.com/HazyResearch/flash-fft-conv.git", subdirectory = "csrc/flashfftconv" }
+# FlashFFTConv is deferred. The package at github.com/HazyResearch/flash-fft-conv
+# in `csrc/flashfftconv` installs as `monarch-cuda`, not `flash-fft-conv` — pip
+# rejects the name mismatch. Add back as a separate optional feature when the
+# Tier-2 benchmark needs it, using the correct package name.
 
 [environments]
 default = { features = ["dev", "bench"], solve-group = "main" }
-full = { features = ["dev", "bench", "flashfft"], solve-group = "main" }
 
 [tasks]
 verify = "python scripts/verify_install.py"

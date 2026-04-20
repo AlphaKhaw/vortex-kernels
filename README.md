@@ -52,11 +52,9 @@ pixi run typecheck     # basedpyright
 pixi shell             # drop into the activated env manually
 ```
 
-For the Tier-2 FlashFFTConv benchmark comparison:
-
-```bash
-pixi install -e full   # pulls flash-fft-conv from git
-```
+For the Tier-2 FlashFFTConv benchmark comparison, add a dedicated feature
+when you need it — the upstream package name is `monarch-cuda`, not
+`flash-fft-conv`, so it is not pre-wired in `pixi.toml` by default.
 
 ### Fallback: conda/micromamba + uv (traditional)
 
