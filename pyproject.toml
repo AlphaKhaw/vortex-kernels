@@ -24,12 +24,12 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+    "basedpyright>=1.28",
+    "nvtx; sys_platform == 'linux'",
+    "pre-commit>=3.8",
     "pytest>=8",
     "pytest-benchmark",
     "ruff>=0.6",
-    "pyright>=1.1",
-    "pre-commit>=3.8",
-    "nvtx; sys_platform == 'linux'",
 ]
 bench = ["matplotlib", "pandas", "torch-tb-profiler"]
 evo2 = ["evo2>=0.5.3", "biopython", "huggingface_hub>=0.24,<0.27"]
@@ -84,10 +84,23 @@ line-ending = "auto"
 docstring-code-format = true
 docstring-code-line-length = "dynamic"
 
-[tool.pyright]
+[tool.basedpyright]
 venvPath = "."
 venv = ".venv"
 typeCheckingMode = "standard"
 pythonVersion = "3.12"
 include = ["vortex_kernels", "tests", "benchmarks", "scripts"]
 exclude = ["**/__pycache__", ".venv", ".pixi"]
+
+# Selective rule elevation — adjust to taste. basedpyright defaults many checks
+# to "hint" (greyed text in IDE); elevate to "warning" for yellow squiggles that
+# show up prominently but don't fail CI, or "error" to block.
+reportUnusedParameter = "hint"          # default — framework hooks keep their contract params
+reportMissingTypeStubs = "none"         # vortex / evo2 / triton don't ship stubs upstream
+reportMissingImports = "warning"        # downgrade from error — Linux-only deps expected to miss on macOS
+reportUnknownParameterType = "warning"  # catches missing annotations on our own params
+reportUnknownVariableType = "none"      # cascades from untyped torch/evo2 deps — unactionable
+reportUnknownMemberType = "none"        # same — torch/triton/vortex attrs surface as Unknown
+reportUnknownArgumentType = "none"      # same cascade
+reportUnknownLambdaType = "none"        # lambda in sorted(), etc. inherits from untyped iterables
+reportUnusedImport = "none"             # ruff F401 already handles this; basedpyright just duplicates
