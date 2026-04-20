@@ -1,11 +1,10 @@
-"""Monkey-patches vortex with vortex-kernels replacements.
+"""
+Monkey-patches vortex with vortex-kernels replacements.
 
 Call sites are gated on individual kernels being implemented — the function
 returns the list of patches actually applied. Safe to call multiple times
 (idempotent) and safe when vortex is missing (logs and returns empty list).
 """
-
-from __future__ import annotations
 
 import logging
 
@@ -15,6 +14,16 @@ _ORIGINALS: dict[str, object] = {}
 
 
 def patch_vortex() -> list[str]:
+    """
+    Apply available vortex-kernels patches to vortex.
+
+    Safe to call multiple times (idempotent) and safe when vortex is not
+    installed (logs a warning and returns an empty list).
+
+    Returns:
+        List of patch names actually applied (e.g., ["hcm"]). Empty list if
+        vortex is absent or no kernels are yet implemented.
+    """
     applied: list[str] = []
     try:
         from vortex.model import engine  # noqa: F401
@@ -22,32 +31,14 @@ def patch_vortex() -> list[str]:
         logger.warning("vortex not installed — no patches applied")
         return applied
 
-    # HCM: fused fftconv_func for parallel_fir (fir_length >= 128)
-    try:
-        from .interfaces.hcm import hcm_fft_conv  # noqa: F401
-
-        # TODO: wire once hcm_fft_conv is implemented
-        # _ORIGINALS["fftconv_func"] = engine.fftconv_func
-        # engine.fftconv_func = _dispatch_with_hcm_fallback(hcm_fft_conv, _ORIGINALS["fftconv_func"])
-        # applied.append("hcm")
-    except NotImplementedError:
-        pass
-
-    # HCS: wire vortex.ops.hyena_x into parallel_fir default branch
-    try:
-        from .interfaces.hcs import hcs_conv  # noqa: F401
-
-        # TODO: wire once hcs_conv is implemented
-    except NotImplementedError:
-        pass
-
-    # HCL: fused scale/multiply around cuFFT in parallel_iir
-    try:
-        from .interfaces.hcl import hcl_fft_conv  # noqa: F401
-
-        # TODO: wire once hcl_fft_conv is implemented
-    except NotImplementedError:
-        pass
+    # Wiring added when each kernel lands in vortex_kernels.interfaces.*.
+    # Pattern for HCM (applies to HCS/HCL by analogy):
+    #     from .interfaces.hcm import hcm_fft_conv
+    #     _ORIGINALS["fftconv_func"] = engine.fftconv_func
+    #     engine.fftconv_func = _dispatch_with_hcm_fallback(
+    #         hcm_fft_conv, _ORIGINALS["fftconv_func"]
+    #     )
+    #     applied.append("hcm")
 
     if applied:
         logger.info("vortex-kernels: patched vortex (%s)", ", ".join(applied))
@@ -55,6 +46,11 @@ def patch_vortex() -> list[str]:
 
 
 def unpatch_vortex() -> None:
+    """
+    Restore original vortex functions previously replaced by patch_vortex.
+
+    No-op if patch_vortex has not been called or applied no patches.
+    """
     if not _ORIGINALS:
         return
     from vortex.model import engine

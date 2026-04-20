@@ -1,12 +1,11 @@
-"""Verbatim reference copies of vortex functions — ground truth for correctness tests.
+"""
+Verbatim reference copies of vortex functions — ground truth for correctness tests.
 
 Do not modify these. They are the numerical oracle. If vortex's engine.py changes
 upstream, update these copies in a separate commit and re-run the full test suite.
 
 Sourced from vortex/model/engine.py at commit <pinned-on-setup>.
 """
-
-from __future__ import annotations
 
 # TODO: copy verbatim once Lambda env is up and vortex is pinned:
 #   - fftconv_func
