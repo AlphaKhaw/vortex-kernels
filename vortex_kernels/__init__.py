@@ -1,9 +1,8 @@
-"""vortex-kernels: optimized inference kernels for Vortex/Evo2.
+"""
+vortex-kernels: optimized inference kernels for Vortex/Evo2.
 
 Third-party. Not affiliated with Arc Institute or the Vortex core team.
 """
-
-from __future__ import annotations
 
 import os
 
