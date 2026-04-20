@@ -47,7 +47,7 @@ git = "*"
 pip = "*"
 
 [pypi-options]
-no-build-isolation = ["flash-attn", "transformer_engine", "transformer_engine_torch"]
+no-build-isolation = ["flash-attn", "transformer_engine", "transformer_engine_torch", "flash-fft-conv"]
 
 [pypi-dependencies]
 flash-attn = "==2.8.0.post2"
