@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Pixi-based bootstrap for a fresh Lambda Cloud H100/A100 instance.
-# Target: Ubuntu 22.04 + Lambda Stack (CUDA 12.8, nvcc present).
+# Pixi-based bootstrap for a fresh GPU VM (RunPod / Lambda / any Ubuntu box).
+# Target: Ubuntu 22.04, NVIDIA driver supporting CUDA 12.9+, A100/H100 GPU.
 #
-# Usage:  bash scripts/setup_lambda.sh
+# Usage:  bash scripts/setup_vm.sh
 #
-# For the conda/micromamba fallback, see scripts/setup_lambda_conda.sh.
+# For the conda/micromamba fallback, see scripts/setup_vm_conda.sh.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -40,13 +40,13 @@ Setup complete. Use pixi for everything:
     pixi run profile           # baseline Evo2 profiling
     pixi run lint              # ruff check
     pixi run format            # ruff format
-    pixi run typecheck         # pyright
+    pixi run typecheck         # basedpyright
     pixi shell                 # drop into the env manually
 
 Optional FlashFFTConv (Tier-2 benchmark comparison):
     pixi install -e full       # adds flash-fft-conv feature
 
 Fallback (no pixi, conda/micromamba instead):
-    bash scripts/setup_lambda_conda.sh
+    bash scripts/setup_vm_conda.sh
 ================================================================
 EOF

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# One-shot bootstrap for a fresh Lambda Cloud H100/A100 instance.
-# Target: Ubuntu 22.04 + Lambda Stack (CUDA 12.8, nvcc present).
+# Conda/micromamba fallback bootstrap for a fresh GPU VM.
+# Target: Ubuntu 22.04, NVIDIA driver supporting CUDA 12.9+, A100/H100 GPU.
 #
-# Usage:  bash scripts/setup_lambda.sh
+# Usage:  bash scripts/setup_vm_conda.sh
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

@@ -26,19 +26,19 @@ Three planned deliverables:
 | `hcs_interface.py` | Wire existing `vortex/ops/hyena_x/triton_indirect_fwd.py` into `parallel_fir` default branch | stub |
 | `hcl_interface.py` | Fused scale/multiply around cuFFT in `parallel_iir` (marginal if FlashFFTConv is installed) | stub |
 
-## Setup — Lambda Cloud (H100 or A100 80GB)
+## Setup — GPU VM (RunPod / Lambda / any CUDA 12.9+ host)
 
 ### Primary: Pixi (fast, lockfile, task runner)
 
 ```bash
 git clone <this repo> && cd vortex-kernels
-bash scripts/setup_lambda.sh
+bash scripts/setup_vm.sh
 ```
 
 That installs [Pixi](https://pixi.sh) (Rust-based conda-forge resolver, 2-5× faster
-than micromamba), resolves everything from `pixi.toml` (CUDA 12.8 + TE 2.3.0 binary
-+ torch 2.7.1 from pytorch.org + flash-attn wheel + evo2), clones vortex for
-source work, and runs the sanity check.
+than micromamba), resolves everything from `pixi.toml` (CUDA 12.9 + conda-forge
+pytorch 2.7.x with CUDA build + TE 2.3.0 binary + flash-attn wheel + evo2),
+clones vortex for source work, and runs the sanity check.
 
 All subsequent commands are Pixi tasks:
 
@@ -48,7 +48,7 @@ pixi run test          # pytest
 pixi run profile       # baseline Evo2 profiling
 pixi run lint          # ruff check
 pixi run format        # ruff format
-pixi run typecheck     # pyright
+pixi run typecheck     # basedpyright
 pixi shell             # drop into the activated env manually
 ```
 
@@ -63,7 +63,7 @@ pixi install -e full   # pulls flash-fft-conv from git
 Matches the install docs in the Vortex and Evo2 READMEs verbatim:
 
 ```bash
-bash scripts/setup_lambda_conda.sh
+bash scripts/setup_vm_conda.sh
 ```
 
 Uses `environment.yml` for the conda-forge base (CUDA + TE) and `uv` for the pip

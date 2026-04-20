@@ -1,5 +1,5 @@
 """
-Sanity-check the environment after setup_lambda.sh.
+Sanity-check the environment after setup_vm.sh.
 
 Exits non-zero if any required package fails to import or CUDA is unavailable.
 Optional packages (flashfftconv, transformer_engine) only warn.
