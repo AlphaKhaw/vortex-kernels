@@ -3,8 +3,15 @@ name = "vortex-kernels"
 version = "0.1.0"
 description = "Optimized Triton inference kernels for Vortex/Evo2"
 authors = ["AlphaKhaw"]
-channels = ["nvidia", "conda-forge"]
+channels = ["conda-forge"]
 platforms = ["linux-64"]
+
+# conda-forge in 2025 has full CUDA toolchain + pytorch + transformer-engine
+# coverage for linux-64, so we don't need the nvidia channel. Adding nvidia
+# with strict priority (the default) causes cross-channel dependency lockouts
+# — nvidia has partial overlap but not all transitive deps (e.g., libcudss,
+# _openmp_mutex), and strict priority blocks fallback to conda-forge for
+# those. Single-channel keeps the solver unambiguous.
 
 # Declare the host CUDA driver capability so conda's __cuda virtual package
 # resolves during solve. Without this, GPU-built packages (pytorch cuda*,
