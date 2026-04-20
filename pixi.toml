@@ -41,6 +41,11 @@ cuda-cudart-dev = "12.9.*"
 cuda-version = "12.9.*"
 pytorch = { version = "2.7.*", build = "cuda*" }
 transformer-engine-torch = "==2.3.0"
+# Pin einops to match vtx 1.0.8's hard requirement. Without this, conda's
+# solve picks einops 0.8.2, which then pins the pypi side to 0.8.2 and
+# conflicts with vtx's own einops==0.8.1 constraint. Holding conda to 0.8.1
+# propagates through and lets the pypi solve succeed.
+einops = "==0.8.1"
 ninja = "*"
 packaging = "*"
 git = "*"
