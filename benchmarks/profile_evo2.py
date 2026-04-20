@@ -535,8 +535,14 @@ def run_profile(
     Returns:
         Populated RunSummary including every artifact path.
     """
-    print(f"\n=== {model_name} @ seq_len={seq_len} ===")
+    print(f"\n=== {model_name} @ seq_len={seq_len} ===", flush=True)
+    print(
+        f"  loading Evo2('{model_name}') — downloads ~14 GB on first call, "
+        "then cached in HF_HOME...",
+        flush=True,
+    )
     model = Evo2(model_name)
+    print("  model loaded; building input tensor...", flush=True)
     device = torch.device("cuda:0")
     input_ids = torch.randint(1, 5, (1, seq_len), dtype=torch.int, device=device)
 
@@ -662,6 +668,10 @@ def main() -> None:
     into combined_summary.json, a stacked plot across all runs, and a
     markdown report.
     """
+    # This print runs only after every top-level import has finished — on a
+    # cold network volume that can be 2-5 min. Seeing this line means the
+    # heavy imports are done and argparse is about to run.
+    print("profile_evo2: module imports complete, parsing args...", flush=True)
     p = argparse.ArgumentParser()
     p.add_argument(
         "--models",
