@@ -13,7 +13,7 @@ authors = [
     { name = "AlphaKhaw", email = "alphakhaw@gmail.com" }
 ]
 dependencies = [
-    "einops==0.8.1",
+    "einops>=0.8",
     "numpy",
     "packaging",
     "pyyaml",
