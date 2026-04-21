@@ -744,6 +744,22 @@ def run_profile(
     finally:
         for undo in undos:
             undo()
+        # Free GPU memory between (model, seq_len) iterations. Without this,
+        # each fresh Evo2 load stacks on the previous one — seq_len=65k's
+        # HCL filter realization alone needs ~16 GB, tipping 80 GB over.
+        # del model unbinds the Python ref; empty_cache returns reserved-but
+        # -unused blocks to the allocator; ipc_collect reclaims any lingering
+        # IPC handles. synchronize ensures no async frees are in flight.
+        import contextlib
+        import gc
+
+        with contextlib.suppress(UnboundLocalError):
+            del model
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            torch.cuda.ipc_collect()
+            torch.cuda.synchronize()
 
 
 def main() -> None:
