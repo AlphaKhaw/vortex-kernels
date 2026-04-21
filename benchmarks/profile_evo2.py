@@ -30,24 +30,33 @@ Aggregate artifacts under --output-dir:
     report.md
 
 Usage:
-    # Pixi (Lambda — the default environment already includes the bench feature
-    # so matplotlib + evo2 + CUDA deps are all present):
+    # Default — evo2_7b_base over the canonical seq_len sweep:
     pixi run profile
-    pixi run profile --seq-lens 4096 16384 65536
+
+    # Explicit sweep with custom seq_lens and run count:
+    pixi run profile --models evo2_7b --seq-lens 2048 8192 32768 --num-runs 5
+
+    # Multi-model panel — runs the Cartesian product of models x seq_lens:
+    pixi run profile --models evo2_7b evo2_7b_base --seq-lens 8192 32768
+
+    # Diagnostic: dump first non-attn block's attribute tree (useful when the
+    # classifier silently returns a single kind for every hyena block):
+    VK_DUMP_BLOCKS=1 pixi run profile --seq-lens 2048 --num-runs 1 --warmup 0
 
     # uv equivalent (sync extras first so matplotlib + evo2 are installed):
     uv sync --extra bench --extra evo2
-    uv run python benchmarks/profile_evo2.py --models evo2_7b_base --seq-lens 8192 32768
+    uv run python -u benchmarks/profile_evo2.py --models evo2_7b_base
 
-    # Sweep multiple variants of the same parameter size in one invocation:
-    pixi run profile --models evo2_7b_base evo2_7b --seq-lens 8192 32768
-
-This script imports evo2 and matplotlib at module load — it is not inspectable
-on hosts without those packages installed. That is intentional: the script
-only runs on a CUDA-equipped profiling host (Lambda A100 / H100 in practice).
+Hardware requirement:
+    Hopper (H100) or newer. Both evo2_7b and evo2_7b_base default configs
+    wrap Linear projections in te.fp8_autocast(enabled=True), requiring
+    compute capability ≥8.9. This script imports evo2 and matplotlib at
+    module load — not inspectable on hosts without them installed, and
+    there is no code-side fallback to Ampere.
 """
 
 import argparse
+import gc
 import json
 import os
 import statistics
@@ -275,15 +284,20 @@ def _dump_block_attrs(block: nn.Module, max_depth: int = 2) -> None:
     Print a block's non-private, non-callable attributes for classifier debugging.
 
     Recurses into `filter` / `mixer` sub-modules up to max_depth so we can see
-    what the operator sub-module exposes. Only runs when a block falls into
-    'other' — gives a fast diagnostic loop for extending _classify_block.
+    what the operator sub-module exposes. Used both when a block falls into
+    'other' and when VK_DUMP_BLOCKS is set — fast diagnostic loop for
+    extending _classify_block.
     """
 
     def _walk(obj: Any, prefix: str, depth: int) -> None:
         for attr in sorted(a for a in dir(obj) if not a.startswith("_")):
+            # Attribute access on torch / TE objects occasionally raises on
+            # lazy descriptors (AttributeError) or state-not-initialized
+            # properties (RuntimeError). Skip those entries rather than
+            # crash the whole dump.
             try:
                 val = getattr(obj, attr)
-            except Exception:
+            except (AttributeError, RuntimeError):
                 continue
             if callable(val) and not isinstance(val, nn.Module):
                 continue
@@ -570,6 +584,91 @@ def _write_report(summaries: list[RunSummary], output_dir: Path) -> Path:
     return path
 
 
+def _resolve_kind_counts(infos: list[LayerInfo]) -> dict[str, int]:
+    """
+    Return a {kind: count} histogram over classified blocks.
+    """
+    counts: dict[str, int] = defaultdict(int)
+    for info in infos:
+        counts[info.kind] += 1
+    return dict(counts)
+
+
+def _print_classification_diagnostics(
+    blocks: list[nn.Module],
+    infos: list[LayerInfo],
+) -> list[str]:
+    """
+    Print block classifier output + optional diagnostic dumps.
+
+    Emits a WARN and an attribute dump for blocks that fell into 'other'.
+    Emits an unconditional attribute dump of the first non-attn block when
+    VK_DUMP_BLOCKS is set in the environment (escape hatch for when the
+    classifier silently returns one kind for every block).
+
+    Returns:
+        The list of class names that were classified as 'other' (empty when
+        classification is clean).
+    """
+    unknown_classes = [info.class_name for info in infos if info.kind == "other"]
+    if unknown_classes:
+        print(
+            f"  WARN: {len(unknown_classes)} block(s) classified as 'other': "
+            f"{sorted(set(unknown_classes))}",
+            flush=True,
+        )
+        print("         Extend _classify_block() in benchmarks/profile_evo2.py.", flush=True)
+        first_other = next(
+            (b for b, i in zip(blocks, infos, strict=True) if i.kind == "other"), None
+        )
+        if first_other is not None:
+            _dump_block_attrs(first_other)
+
+    if os.environ.get("VK_DUMP_BLOCKS") and blocks:
+        first_non_attn = next(
+            (b for b, i in zip(blocks, infos, strict=True) if i.kind != "attn"),
+            blocks[0],
+        )
+        print(
+            f"  VK_DUMP_BLOCKS: structure of first non-attn block "
+            f"(kind='{_classify_block(first_non_attn)}'):",
+            flush=True,
+        )
+        _dump_block_attrs(first_non_attn)
+
+    return unknown_classes
+
+
+def _top_ops_table(key_avgs: Any, row_limit: int = 40) -> str:
+    """
+    Render the profiler's top-ops text table, tolerating torch 2.6→2.8 rename.
+
+    PyTorch 2.7 changed the sort-by key from 'cuda_time_total' to
+    'device_time_total' as part of multi-accelerator support. Try the new
+    name first, fall back to the legacy name for older torch.
+    """
+    try:
+        return key_avgs.table(sort_by="device_time_total", row_limit=row_limit)
+    except (ValueError, KeyError, AssertionError):
+        return key_avgs.table(sort_by="cuda_time_total", row_limit=row_limit)
+
+
+def _reclaim_gpu_memory() -> None:
+    """
+    Force GPU memory cleanup between (model, seq_len) iterations.
+
+    Without this, each fresh Evo2 load stacks on the previous one — at
+    seq_len=65k the HCL filter realization alone needs ~16 GB, tipping a
+    single 80 GB GPU over. gc.collect breaks any Python reference cycles
+    holding tensors; synchronize ensures all pending CUDA ops are done
+    before empty_cache returns reserved-but-unused blocks to the pool.
+    """
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.synchronize()
+        torch.cuda.empty_cache()
+
+
 def run_profile(
     model_name: str,
     seq_len: int,
@@ -582,7 +681,9 @@ def run_profile(
 
     Wraps every block's forward in a named record_function scope, runs
     warmup + timed forwards under the torch profiler, writes all artifacts
-    to `output_dir`, and returns a fully populated RunSummary.
+    to `output_dir`, and returns a fully populated RunSummary. The finally
+    block guarantees block-forward unwrapping and GPU memory reclamation
+    even on mid-run failure.
 
     Args:
         model_name (str): Evo2 model ID (e.g., "evo2_7b_base").
@@ -600,49 +701,21 @@ def run_profile(
         "then cached in HF_HOME...",
         flush=True,
     )
-    model = Evo2(model_name)
-    print("  model loaded; building input tensor...", flush=True)
-    device = torch.device("cuda:0")
-    input_ids = torch.randint(1, 5, (1, seq_len), dtype=torch.int, device=device)
 
-    blocks, blocks_path = _find_blocks(model)
-    infos, undos = _wrap_block_forwards(blocks)
-    print(f"  blocks at {blocks_path}: {len(blocks)}")
-    kind_counts: dict[str, int] = defaultdict(int)
-    for info in infos:
-        kind_counts[info.kind] += 1
-    print(f"  kinds: {dict(kind_counts)}")
-    unknown_classes = [info.class_name for info in infos if info.kind == "other"]
-    if unknown_classes:
-        print(
-            f"  WARN: {len(unknown_classes)} block(s) classified as 'other': "
-            f"{sorted(set(unknown_classes))}",
-            flush=True,
-        )
-        print("         Extend _classify_block() in benchmarks/profile_evo2.py.", flush=True)
-        first_other = next(
-            (b for b, i in zip(blocks, infos, strict=True) if i.kind == "other"), None
-        )
-        if first_other is not None:
-            _dump_block_attrs(first_other)
-
-    # Force a one-block structure dump when the VK_DUMP_BLOCKS env var is set.
-    # This is a diagnostic escape hatch for cases where the classifier returns
-    # a single kind for every block (e.g. all 'hcl') — no WARN fires, so the
-    # normal unknown-class path above doesn't help. Run with
-    # `VK_DUMP_BLOCKS=1 pixi run profile ...` to emit the tree.
-    if os.environ.get("VK_DUMP_BLOCKS") and blocks:
-        first_non_attn = next(
-            (b for b, i in zip(blocks, infos, strict=True) if i.kind != "attn"),
-            blocks[0],
-        )
-        print(
-            f"  VK_DUMP_BLOCKS: structure of first non-attn block (kind='{_classify_block(first_non_attn)}'):",
-            flush=True,
-        )
-        _dump_block_attrs(first_non_attn)
-
+    model: Any = None
+    undos: list[Callable[[], None]] = []
     try:
+        model = Evo2(model_name)
+        print("  model loaded; building input tensor...", flush=True)
+        device = torch.device("cuda:0")
+        input_ids = torch.randint(1, 5, (1, seq_len), dtype=torch.int, device=device)
+
+        blocks, blocks_path = _find_blocks(model)
+        infos, undos = _wrap_block_forwards(blocks)
+        print(f"  blocks at {blocks_path}: {len(blocks)}")
+        print(f"  kinds: {_resolve_kind_counts(infos)}")
+        unknown_classes = _print_classification_diagnostics(blocks, infos)
+
         print(f"  warmup ({warmup} runs)...")
         with torch.no_grad():
             for _ in range(warmup):
@@ -665,12 +738,7 @@ def run_profile(
 
         prof.export_chrome_trace(str(trace_path))
         top_ops_path = output_dir / f"top_ops_{model_name}_L{seq_len}.txt"
-        key_avgs = prof.key_averages()
-        try:
-            top_ops_str = key_avgs.table(sort_by="device_time_total", row_limit=40)
-        except (ValueError, KeyError, AssertionError):
-            top_ops_str = key_avgs.table(sort_by="cuda_time_total", row_limit=40)
-        top_ops_path.write_text(top_ops_str)
+        top_ops_path.write_text(_top_ops_table(prof.key_averages()))
 
         _extract_per_layer_times(prof, infos)
         per_run_ms = _extract_per_run_ms(prof, num_runs)
@@ -744,22 +812,8 @@ def run_profile(
     finally:
         for undo in undos:
             undo()
-        # Free GPU memory between (model, seq_len) iterations. Without this,
-        # each fresh Evo2 load stacks on the previous one — seq_len=65k's
-        # HCL filter realization alone needs ~16 GB, tipping 80 GB over.
-        # del model unbinds the Python ref; empty_cache returns reserved-but
-        # -unused blocks to the allocator; ipc_collect reclaims any lingering
-        # IPC handles. synchronize ensures no async frees are in flight.
-        import contextlib
-        import gc
-
-        with contextlib.suppress(UnboundLocalError):
-            del model
-        gc.collect()
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-            torch.cuda.ipc_collect()
-            torch.cuda.synchronize()
+        model = None
+        _reclaim_gpu_memory()
 
 
 def main() -> None:
@@ -780,9 +834,11 @@ def main() -> None:
         nargs="+",
         default=["evo2_7b_base"],
         help=(
-            "One or more Evo2 model IDs to sweep. evo2_7b_base is the safest "
-            "default (bf16, any Ampere+). evo2_7b uses transformer_engine and "
-            "is optimised for H100 FP8; it runs on A100 in bf16 mode too."
+            "One or more Evo2 model IDs to sweep. evo2_7b_base is the default; "
+            "evo2_7b is the long-context variant. Both default configs wrap "
+            "Linear projections in te.fp8_autocast(enabled=True), which asserts "
+            "on compute capability <8.9 — so the stock script requires H100 or "
+            "newer. Running on A100 needs a FP8 downgrade patch not shipped here."
         ),
     )
     p.add_argument("--seq-lens", nargs="+", type=int, default=[8192, 32768])
