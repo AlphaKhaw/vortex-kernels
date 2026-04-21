@@ -35,6 +35,17 @@ That materializes a `(D=4096, state_size=16, L)` fp32 tensor. At L=131k that's 3
 
 I understand the 1M claim is pipeline-parallel; this isn't a bug report. It's context for why a memory-efficient HCL kernel that avoids materializing the full filter would directly unlock longer seq_len on single-GPU deployments, which is the common case for many downstream users (variant scoring pipelines, small labs, etc.).
 
+Size math for the filter-realization tensor at `D=4096, state_size=16`:
+
+| seq_len | Filter tensor size (fp32) |
+|---|---:|
+| 65,536 | 17.2 GiB |
+| 131,072 | 34.4 GiB |
+| 262,144 | 68.7 GiB |
+| 1,048,576 | 262 GiB |
+
+Tiling this over L with a modest `BLOCK_L=4096` reduces peak filter-tile allocation to ~1 GiB. Whether the L=131k forward fits in 80 GB after tiling depends on the input-FFT intermediates (separate, not tiled by this proposal) plus activation memory — to be confirmed during PR review.
+
 #### 2. All three hyena variants run unfused by default
 
 From the L=65,536 profile (full data linked below):
@@ -75,30 +86,15 @@ I read the `kernels` branch (last real commit `2cd0338` "feat: kernel interface 
 
 ### Proposed scope
 
-Three interface files, potentially three small PRs for review flexibility:
+**One PR** covering all three interfaces, with the three kernels cleanly separated internally. Happy to split into three smaller PRs if you'd prefer staged review — just say so and I'll sequence them HCS → HCM → HCL (smallest risk to largest).
 
-#### PR 1 (optional, opt-in): `hcl_interface.py` — fused HCL with tiled filter realization
+Each interface is opt-in behind its own config flag defaulting to `False`:
 
-The bigger contribution. Triton kernel that tiles over L, computes the filter `h = residues * (log_poles * t).exp()` inside the tile, and fuses the FFT-conv without materializing the full `(D, L)` fp32 intermediate. Signature matches `HyenaCascade.parallel_forward`'s existing call site so dispatch is a one-line change in `engine.py`.
+- **`hcl_interface.py`** — Triton kernel that tiles over L, computes the filter `h = residues * (log_poles * t).exp()` inside the tile, and fuses the FFT-conv without materializing the full `(D, L)` fp32 intermediate. Gated by `use_triton_hcl`.
+- **`hcm_interface.py`** — `hcm_fft_conv(u, k, D, …)` matching `fftconv_func`'s signature. Fused scale/multiply around cuFFT collapses the 6-launch unfused pattern to 2× cuFFT + 2× Triton. Dispatched in `engine.py::parallel_fir`'s `fir_length >= 128` branch. Gated by `use_triton_hcm`.
+- **`hcs_interface.py`** — Direct Triton depthwise conv for `hcs_filter_length: 7`. At this filter size the FFT round-trip is a net loss; a direct conv wins. Dispatched in `parallel_fir`'s `fir_length < 128` branch. Gated by `use_triton_hcs`.
 
-Expected: 2–4× kernel-level speedup on H100, and significant peak-memory reduction (empirical target: fit L=131k in 80 GB — subject to measurement).
-
-#### PR 2 (opt-in): `hcm_interface.py` — fused `fftconv_func` replacement
-
-```python
-def hcm_fft_conv(u, k, D, *, dropout_mask=None, gelu=True, k_rev=None,
-                 bidirectional=False, **kwargs) -> torch.Tensor:
-    """Matches fftconv_func signature. Fused scale/multiply around cuFFT
-    replaces 6 kernel launches with 2 cuFFT + 2 Triton = 4 launches."""
-```
-
-One-line dispatch in `engine.py::parallel_fir`'s `fir_length >= 128` branch.
-
-#### PR 3 (opt-in): `hcs_interface.py` — short-filter conv path
-
-Probably the simplest — `hcs_filter_length: 7` means a direct Triton depthwise convolution is faster than the FFT round-trip at this filter size. Dispatched in the `parallel_fir` `fir_length < 128` branch.
-
-All three are gated by config flags (`use_triton_hcl` / `use_triton_hcm` / `use_triton_hcs`) defaulting to `False` — **zero behavioral change when flags are off, zero API changes**.
+**Zero behavioral change when flags are off, zero API changes.** All three keep bit-exact fallback to the current code paths.
 
 ### Acceptance criteria (per PR)
 
@@ -117,7 +113,7 @@ All profiling, kernel code, correctness tests, and results artifacts live in `<R
 1. **Branch strategy**: fresh modules on `main`, or re-export from `vortex.ops.conv.hyena_ops.*` (i.e., rebased on the `kernels` branch)? I'd prefer the former given the branch state, but you may have a reason.
 2. **Config-key naming**: `use_triton_hcl` / `_hcm` / `_hcs` per-kernel flags, or one unified `use_triton_kernels` bool, or auto-dispatch when importable? Per-kernel flags give reviewers the safest rollback path.
 3. **Test placement**: I don't see a top-level `tests/` directory on main. Under `vortex/ops/tests/` for the whole family, or one test file per interface alongside the implementation?
-4. **PR ordering preference**: HCL first (biggest impact, highest risk)? Or HCS first (smallest, lowest risk, good for establishing the dispatch + test pattern)? I'd lean HCS → HCM → HCL for incremental de-risking.
+4. **Single PR or three**: default plan is one PR with all three kernels + their tests; I'll split into three (HCS → HCM → HCL) if you'd rather stage the review.
 5. **Scope of #16**: does this proposal fit within #16, or would you prefer a new issue and have this one close?
 
 I'll hold off on opening any PR until you've had a chance to respond — no rush.
