@@ -228,62 +228,39 @@ def _find_blocks(model: Any) -> tuple[list[nn.Module], str]:
 
 def _classify_block(block: nn.Module) -> str:
     """
-    Classify a block as hcl / hcm / hcs / attn / other.
+    Classify a block using the StripedHyena model config.
 
-    Probes in order: class-name markers for attention, then numeric filter
-    length (vortex blocks store this on the filter sub-module), then
-    explicit operator-type attributes, then name-based fallbacks.
+    Vortex's StripedHyena stores the authoritative layer-index lists on
+    every block via `block.config`. Each block also carries its own
+    `block.layer_idx`. Match the index against each list:
 
-    In vortex, every hyena variant (HCL/HCM/HCS) is a ParallelGatedConvBlock;
-    the distinguishing signal lives on the block's filter sub-module via
-    attributes like `L`, `filter_length`, or in the operator_config.
+        block.config['hcs_layer_idxs']   -> hcs
+        block.config['hcm_layer_idxs']   -> hcm
+        block.config['hcl_layer_idxs']   -> hcl
+        block.config['attn_layer_idxs']  -> attn
+
+    For non-vortex models that happen to reuse this profiler, fall back to
+    class-name heuristics at the end.
 
     Args:
         block (nn.Module): One entry from the model's block list.
     """
+    layer_idx = getattr(block, "layer_idx", None)
+    config = getattr(block, "config", None)
+    if isinstance(layer_idx, int) and isinstance(config, dict):
+        if layer_idx in config.get("hcs_layer_idxs", []):
+            return "hcs"
+        if layer_idx in config.get("hcm_layer_idxs", []):
+            return "hcm"
+        if layer_idx in config.get("hcl_layer_idxs", []):
+            return "hcl"
+        if layer_idx in config.get("attn_layer_idxs", []):
+            return "attn"
+
+    # Fallback for non-vortex models: class-name heuristics.
     cls = type(block).__name__.lower()
     if "attention" in cls or "mha" in cls:
         return "attn"
-
-    # Probe the filter sub-module for a length signal. HCS filters are ~7,
-    # HCM are ~128, HCL are long/implicit with no fixed length.
-    for attr_path in ("filter", "filter_mlp", "mixer.filter", "mixer"):
-        obj: Any = block
-        for part in attr_path.split("."):
-            obj = getattr(obj, part, None)
-            if obj is None:
-                break
-        if obj is None:
-            continue
-        for len_attr in ("L", "filter_length", "fir_length", "short_filter_order"):
-            fl = getattr(obj, len_attr, None)
-            if isinstance(fl, int) and fl > 0:
-                if fl <= 16:
-                    return "hcs"
-                if fl <= 256:
-                    return "hcm"
-                return "hcl"
-        filter_cls = type(obj).__name__.lower()
-        if "short" in filter_cls:
-            return "hcs"
-        if "medium" in filter_cls or "_mr" in filter_cls or "mr" in filter_cls:
-            return "hcm"
-        if "implicit" in filter_cls or "long" in filter_cls or "hyena" in filter_cls:
-            return "hcl"
-
-    # Block-level config attrs (some vortex versions expose these)
-    for attr in ("operator_type", "_operator_type", "mode", "filter_type"):
-        if not hasattr(block, attr):
-            continue
-        tag = str(getattr(block, attr)).lower()
-        if "long" in tag or tag.endswith("_l"):
-            return "hcl"
-        if "medium" in tag or "_mr" in tag or "mr" in tag:
-            return "hcm"
-        if "short" in tag or "_se" in tag or "se" in tag:
-            return "hcs"
-
-    # Last-resort: block-class name
     if "short" in cls or "_se" in cls:
         return "hcs"
     if "medium" in cls or "_mr" in cls:
