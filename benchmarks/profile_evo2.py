@@ -49,6 +49,7 @@ only runs on a CUDA-equipped profiling host (Lambda A100 / H100 in practice).
 
 import argparse
 import json
+import os
 import statistics
 from collections import defaultdict
 from collections.abc import Callable
@@ -366,26 +367,41 @@ def _wrap_block_forwards(
     return infos, undos
 
 
+def _evt_cuda_us(evt: Any) -> float:
+    """
+    Return an event's GPU time in microseconds, tolerating API rename.
+
+    PyTorch ≥2.7 renamed FunctionEventAvg.cuda_time_total to device_time_total
+    (part of the multi-accelerator rework — same attribute also covers XPU,
+    MPS, etc.). The old name was removed, not aliased. Probe both so the
+    script works across torch 2.6–2.8.
+    """
+    val = getattr(evt, "device_time_total", None)
+    if val is None:
+        val = getattr(evt, "cuda_time_total", 0.0)
+    return float(val)
+
+
 def _extract_per_layer_times(prof: Any, infos: list[LayerInfo]) -> None:
     """
     Fill each LayerInfo.cuda_ms from the profiler's record_function events.
 
-    The record_function scope aggregates CUDA time of every op launched
-    inside it, so its cuda_time_total is exactly the block's total GPU
-    time across all profiled runs.
+    The record_function scope aggregates GPU time of every op launched
+    inside it, so its device-time total is the block's full GPU time
+    across all profiled runs.
     """
     key_avgs = prof.key_averages()
     for info in infos:
         label = f"{LAYER_LABEL_PREFIX}:{info.idx:02d}:{info.kind}"
         for evt in key_avgs:
             if evt.key == label:
-                info.cuda_ms = evt.cuda_time_total / 1000.0
+                info.cuda_ms = _evt_cuda_us(evt) / 1000.0
                 break
 
 
 def _extract_per_run_ms(prof: Any, num_runs: int) -> list[float]:
     """
-    Extract CUDA time of each `forward_run_i` scope in ms.
+    Extract GPU time of each `forward_run_i` scope in ms.
     """
     key_avgs = prof.key_averages()
     per_run: list[float] = []
@@ -393,7 +409,7 @@ def _extract_per_run_ms(prof: Any, num_runs: int) -> list[float]:
         label = f"forward_run_{i}"
         for evt in key_avgs:
             if evt.key == label:
-                per_run.append(evt.cuda_time_total / 1000.0)
+                per_run.append(_evt_cuda_us(evt) / 1000.0)
                 break
     return per_run
 
@@ -414,15 +430,16 @@ def _categorize_ops(prof: Any) -> tuple[dict[str, float], float]:
     for evt in prof.key_averages():
         if evt.key.startswith(LAYER_LABEL_PREFIX) or evt.key.startswith("forward_run_"):
             continue
-        total_us += evt.cuda_time_total
+        evt_us = _evt_cuda_us(evt)
+        total_us += evt_us
         matched = False
         for category, patterns in OP_CATEGORIES.items():
             if any(p in evt.key for p in patterns):
-                totals[category] += evt.cuda_time_total
+                totals[category] += evt_us
                 matched = True
                 break
         if not matched:
-            totals["other"] += evt.cuda_time_total
+            totals["other"] += evt_us
     return {k: v / 1000.0 for k, v in totals.items()}, total_us / 1000.0
 
 
@@ -626,12 +643,27 @@ def run_profile(
             flush=True,
         )
         print("         Extend _classify_block() in benchmarks/profile_evo2.py.", flush=True)
-        # Dump attrs of one unclassified block so we know what to branch on
         first_other = next(
             (b for b, i in zip(blocks, infos, strict=True) if i.kind == "other"), None
         )
         if first_other is not None:
             _dump_block_attrs(first_other)
+
+    # Force a one-block structure dump when the VK_DUMP_BLOCKS env var is set.
+    # This is a diagnostic escape hatch for cases where the classifier returns
+    # a single kind for every block (e.g. all 'hcl') — no WARN fires, so the
+    # normal unknown-class path above doesn't help. Run with
+    # `VK_DUMP_BLOCKS=1 pixi run profile ...` to emit the tree.
+    if os.environ.get("VK_DUMP_BLOCKS") and blocks:
+        first_non_attn = next(
+            (b for b, i in zip(blocks, infos, strict=True) if i.kind != "attn"),
+            blocks[0],
+        )
+        print(
+            f"  VK_DUMP_BLOCKS: structure of first non-attn block (kind='{_classify_block(first_non_attn)}'):",
+            flush=True,
+        )
+        _dump_block_attrs(first_non_attn)
 
     try:
         print(f"  warmup ({warmup} runs)...")
@@ -656,7 +688,12 @@ def run_profile(
 
         prof.export_chrome_trace(str(trace_path))
         top_ops_path = output_dir / f"top_ops_{model_name}_L{seq_len}.txt"
-        top_ops_path.write_text(prof.key_averages().table(sort_by="cuda_time_total", row_limit=40))
+        key_avgs = prof.key_averages()
+        try:
+            top_ops_str = key_avgs.table(sort_by="device_time_total", row_limit=40)
+        except (ValueError, KeyError, AssertionError):
+            top_ops_str = key_avgs.table(sort_by="cuda_time_total", row_limit=40)
+        top_ops_path.write_text(top_ops_str)
 
         _extract_per_layer_times(prof, infos)
         per_run_ms = _extract_per_run_ms(prof, num_runs)
