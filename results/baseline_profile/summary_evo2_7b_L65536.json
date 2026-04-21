@@ -1,0 +1,247 @@
+{
+  "model": "evo2_7b",
+  "seq_len": 65536,
+  "num_runs": 5,
+  "warmup": 3,
+  "total_cuda_ms": 128889.93281299912,
+  "forward_ms_mean": 6681.080750399956,
+  "forward_ms_std": 11.844219930306274,
+  "by_category_ms": {
+    "other": 62900.923200999474,
+    "reshape": 455.12190900000354,
+    "elementwise": 10347.660153999894,
+    "cast_copy": 9486.85573299988,
+    "conv": 7985.117611999944,
+    "gemm": 25894.12939299994,
+    "fft": 7967.37998599997,
+    "attention": 3852.7448249999957
+  },
+  "by_category_pct": {
+    "other": 48.802045146737505,
+    "reshape": 0.3531089659735647,
+    "elementwise": 8.028291991596326,
+    "cast_copy": 7.3604319018180835,
+    "conv": 6.195299693099544,
+    "gemm": 20.0901100868511,
+    "fft": 6.181537853355468,
+    "attention": 2.9891743605683914
+  },
+  "by_layer_kind_ms": {
+    "hcl": 16392.670775999748,
+    "hcm": 6868.448113000002,
+    "hcs": 4522.424609999992,
+    "attn": 5592.920548000031,
+    "other": 0.0
+  },
+  "by_layer_kind_pct": {
+    "hcl": 12.718348453003829,
+    "hcm": 5.328925202378016,
+    "hcs": 3.508749295851821,
+    "attn": 4.339299762157964,
+    "other": 0.0
+  },
+  "per_layer": [
+    {
+      "idx": 0,
+      "kind": "hcs",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 307.31176599999964
+    },
+    {
+      "idx": 1,
+      "kind": "hcm",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 415.02888900000517
+    },
+    {
+      "idx": 2,
+      "kind": "hcl",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 674.6875080000032
+    },
+    {
+      "idx": 3,
+      "kind": "attn",
+      "class_name": "AttentionBlock",
+      "cuda_ms": 683.2594039999966
+    },
+    {
+      "idx": 4,
+      "kind": "hcs",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 305.94159200000195
+    },
+    {
+      "idx": 5,
+      "kind": "hcm",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 416.39195399999994
+    },
+    {
+      "idx": 6,
+      "kind": "hcl",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 672.6110899999771
+    },
+    {
+      "idx": 7,
+      "kind": "hcs",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 303.5542429999943
+    },
+    {
+      "idx": 8,
+      "kind": "hcm",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 417.825125000015
+    },
+    {
+      "idx": 9,
+      "kind": "hcl",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 675.6906500000052
+    },
+    {
+      "idx": 10,
+      "kind": "attn",
+      "class_name": "AttentionBlock",
+      "cuda_ms": 682.0573820000061
+    },
+    {
+      "idx": 11,
+      "kind": "hcs",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 304.0487050000061
+    },
+    {
+      "idx": 12,
+      "kind": "hcm",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 416.3446440000145
+    },
+    {
+      "idx": 13,
+      "kind": "hcl",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 675.538650000006
+    },
+    {
+      "idx": 14,
+      "kind": "hcs",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 305.99801800000273
+    },
+    {
+      "idx": 15,
+      "kind": "hcm",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 414.55181199999083
+    },
+    {
+      "idx": 16,
+      "kind": "hcl",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 2127.6769549999863
+    },
+    {
+      "idx": 17,
+      "kind": "attn",
+      "class_name": "AttentionBlock",
+      "cuda_ms": 1422.403792000022
+    },
+    {
+      "idx": 18,
+      "kind": "hcs",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 837.4315599999977
+    },
+    {
+      "idx": 19,
+      "kind": "hcm",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 1146.8943769999773
+    },
+    {
+      "idx": 20,
+      "kind": "hcl",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 2897.1967769999624
+    },
+    {
+      "idx": 21,
+      "kind": "hcs",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 661.8936350000012
+    },
+    {
+      "idx": 22,
+      "kind": "hcm",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 1246.6648079999904
+    },
+    {
+      "idx": 23,
+      "kind": "hcl",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 2903.16874799995
+    },
+    {
+      "idx": 24,
+      "kind": "attn",
+      "class_name": "AttentionBlock",
+      "cuda_ms": 1410.5178590000035
+    },
+    {
+      "idx": 25,
+      "kind": "hcs",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 832.3100599999968
+    },
+    {
+      "idx": 26,
+      "kind": "hcm",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 1141.7817850000356
+    },
+    {
+      "idx": 27,
+      "kind": "hcl",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 2868.8612689999823
+    },
+    {
+      "idx": 28,
+      "kind": "hcs",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 663.9350309999911
+    },
+    {
+      "idx": 29,
+      "kind": "hcm",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 1252.9647189999735
+    },
+    {
+      "idx": 30,
+      "kind": "hcl",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 2897.239128999875
+    },
+    {
+      "idx": 31,
+      "kind": "attn",
+      "class_name": "AttentionBlock",
+      "cuda_ms": 1394.6821110000028
+    }
+  ],
+  "unmatched_cuda_ms": 95513.46876599934,
+  "unknown_block_classes": [],
+  "artifacts": {
+    "chrome_trace": "results/baseline_profile/trace_evo2_7b_L65536.json",
+    "top_ops": "results/baseline_profile/top_ops_evo2_7b_L65536.txt",
+    "layer_breakdown": "results/baseline_profile/layer_breakdown_evo2_7b_L65536.json",
+    "per_layer_plot": "results/baseline_profile/plots/per_layer_evo2_7b_L65536.png",
+    "layer_kinds_plot": "results/baseline_profile/plots/layer_kinds_evo2_7b_L65536.png",
+    "op_categories_plot": "results/baseline_profile/plots/op_categories_evo2_7b_L65536.png"
+  }
+}

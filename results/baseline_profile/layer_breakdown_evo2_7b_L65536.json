@@ -1,0 +1,194 @@
+[
+  {
+    "idx": 0,
+    "kind": "hcs",
+    "class_name": "ParallelGatedConvBlock",
+    "cuda_ms": 307.31176599999964
+  },
+  {
+    "idx": 1,
+    "kind": "hcm",
+    "class_name": "ParallelGatedConvBlock",
+    "cuda_ms": 415.02888900000517
+  },
+  {
+    "idx": 2,
+    "kind": "hcl",
+    "class_name": "ParallelGatedConvBlock",
+    "cuda_ms": 674.6875080000032
+  },
+  {
+    "idx": 3,
+    "kind": "attn",
+    "class_name": "AttentionBlock",
+    "cuda_ms": 683.2594039999966
+  },
+  {
+    "idx": 4,
+    "kind": "hcs",
+    "class_name": "ParallelGatedConvBlock",
+    "cuda_ms": 305.94159200000195
+  },
+  {
+    "idx": 5,
+    "kind": "hcm",
+    "class_name": "ParallelGatedConvBlock",
+    "cuda_ms": 416.39195399999994
+  },
+  {
+    "idx": 6,
+    "kind": "hcl",
+    "class_name": "ParallelGatedConvBlock",
+    "cuda_ms": 672.6110899999771
+  },
+  {
+    "idx": 7,
+    "kind": "hcs",
+    "class_name": "ParallelGatedConvBlock",
+    "cuda_ms": 303.5542429999943
+  },
+  {
+    "idx": 8,
+    "kind": "hcm",
+    "class_name": "ParallelGatedConvBlock",
+    "cuda_ms": 417.825125000015
+  },
+  {
+    "idx": 9,
+    "kind": "hcl",
+    "class_name": "ParallelGatedConvBlock",
+    "cuda_ms": 675.6906500000052
+  },
+  {
+    "idx": 10,
+    "kind": "attn",
+    "class_name": "AttentionBlock",
+    "cuda_ms": 682.0573820000061
+  },
+  {
+    "idx": 11,
+    "kind": "hcs",
+    "class_name": "ParallelGatedConvBlock",
+    "cuda_ms": 304.0487050000061
+  },
+  {
+    "idx": 12,
+    "kind": "hcm",
+    "class_name": "ParallelGatedConvBlock",
+    "cuda_ms": 416.3446440000145
+  },
+  {
+    "idx": 13,
+    "kind": "hcl",
+    "class_name": "ParallelGatedConvBlock",
+    "cuda_ms": 675.538650000006
+  },
+  {
+    "idx": 14,
+    "kind": "hcs",
+    "class_name": "ParallelGatedConvBlock",
+    "cuda_ms": 305.99801800000273
+  },
+  {
+    "idx": 15,
+    "kind": "hcm",
+    "class_name": "ParallelGatedConvBlock",
+    "cuda_ms": 414.55181199999083
+  },
+  {
+    "idx": 16,
+    "kind": "hcl",
+    "class_name": "ParallelGatedConvBlock",
+    "cuda_ms": 2127.6769549999863
+  },
+  {
+    "idx": 17,
+    "kind": "attn",
+    "class_name": "AttentionBlock",
+    "cuda_ms": 1422.403792000022
+  },
+  {
+    "idx": 18,
+    "kind": "hcs",
+    "class_name": "ParallelGatedConvBlock",
+    "cuda_ms": 837.4315599999977
+  },
+  {
+    "idx": 19,
+    "kind": "hcm",
+    "class_name": "ParallelGatedConvBlock",
+    "cuda_ms": 1146.8943769999773
+  },
+  {
+    "idx": 20,
+    "kind": "hcl",
+    "class_name": "ParallelGatedConvBlock",
+    "cuda_ms": 2897.1967769999624
+  },
+  {
+    "idx": 21,
+    "kind": "hcs",
+    "class_name": "ParallelGatedConvBlock",
+    "cuda_ms": 661.8936350000012
+  },
+  {
+    "idx": 22,
+    "kind": "hcm",
+    "class_name": "ParallelGatedConvBlock",
+    "cuda_ms": 1246.6648079999904
+  },
+  {
+    "idx": 23,
+    "kind": "hcl",
+    "class_name": "ParallelGatedConvBlock",
+    "cuda_ms": 2903.16874799995
+  },
+  {
+    "idx": 24,
+    "kind": "attn",
+    "class_name": "AttentionBlock",
+    "cuda_ms": 1410.5178590000035
+  },
+  {
+    "idx": 25,
+    "kind": "hcs",
+    "class_name": "ParallelGatedConvBlock",
+    "cuda_ms": 832.3100599999968
+  },
+  {
+    "idx": 26,
+    "kind": "hcm",
+    "class_name": "ParallelGatedConvBlock",
+    "cuda_ms": 1141.7817850000356
+  },
+  {
+    "idx": 27,
+    "kind": "hcl",
+    "class_name": "ParallelGatedConvBlock",
+    "cuda_ms": 2868.8612689999823
+  },
+  {
+    "idx": 28,
+    "kind": "hcs",
+    "class_name": "ParallelGatedConvBlock",
+    "cuda_ms": 663.9350309999911
+  },
+  {
+    "idx": 29,
+    "kind": "hcm",
+    "class_name": "ParallelGatedConvBlock",
+    "cuda_ms": 1252.9647189999735
+  },
+  {
+    "idx": 30,
+    "kind": "hcl",
+    "class_name": "ParallelGatedConvBlock",
+    "cuda_ms": 2897.239128999875
+  },
+  {
+    "idx": 31,
+    "kind": "attn",
+    "class_name": "AttentionBlock",
+    "cuda_ms": 1394.6821110000028
+  }
+]
