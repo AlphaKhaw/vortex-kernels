@@ -219,3 +219,4 @@ results/**/*.tmp
 
 # Claude Code project-local instructions (not for public repo)
 CLAUDE.md
+RUNBOOK.md
