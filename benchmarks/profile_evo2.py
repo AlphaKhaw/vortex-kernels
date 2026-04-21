@@ -653,6 +653,26 @@ def _top_ops_table(key_avgs: Any, row_limit: int = 40) -> str:
         return key_avgs.table(sort_by="cuda_time_total", row_limit=row_limit)
 
 
+def _oom_summary(exc: BaseException) -> str:
+    """
+    Condense a torch OOM exception message to one informative line.
+
+    torch's OOM message includes a multi-paragraph fragmentation hint and
+    the PYTORCH_CUDA_ALLOC_CONF recommendation that bloats sweep logs. We
+    extract just the 'Tried to allocate X / GPU has Y free' numbers.
+    """
+    msg = str(exc)
+    first_line = msg.split("\n", 1)[0].strip()
+    # "CUDA out of memory. Tried to allocate 16.00 GiB. GPU 0 has a total
+    # capacity of 79.18 GiB of which 13.78 GiB is free." — keep up to the
+    # "is free." tail; drop the allocator tuning advice.
+    marker = "is free."
+    idx = msg.find(marker)
+    if idx != -1:
+        return msg[: idx + len(marker)].replace("\n", " ").strip()
+    return first_line
+
+
 def _reclaim_gpu_memory() -> None:
     """
     Force GPU memory cleanup between (model, seq_len) iterations.
@@ -848,11 +868,43 @@ def main() -> None:
     args = p.parse_args()
 
     out_dir = Path(args.output_dir)
-    summaries: list[RunSummary] = [
-        run_profile(model_name, seq_len, out_dir, args.num_runs, args.warmup)
-        for model_name in args.models
-        for seq_len in args.seq_lens
-    ]
+    summaries: list[RunSummary] = []
+    skipped: list[tuple[str, int, str]] = []
+    for model_name in args.models:
+        for seq_len in args.seq_lens:
+            try:
+                summaries.append(
+                    run_profile(model_name, seq_len, out_dir, args.num_runs, args.warmup)
+                )
+            except torch.cuda.OutOfMemoryError as exc:
+                # Single-GPU OOM on one (model, seq_len) shouldn't kill the
+                # whole sweep. Log, reclaim, continue with the next seq_len.
+                # This handles e.g. HCL's filter realization blowing 80 GB
+                # at long L — smaller seq_lens on the same model still run.
+                print(
+                    f"  SKIPPED: {model_name} @ L={seq_len} — CUDA OOM: {_oom_summary(exc)}",
+                    flush=True,
+                )
+                skipped.append((model_name, seq_len, "OOM"))
+                _reclaim_gpu_memory()
+            except RuntimeError as exc:
+                # torch 2.x sometimes wraps OOM in a plain RuntimeError
+                # ("CUDA error: out of memory"). Detect by message, handle
+                # like OutOfMemoryError. Re-raise anything else — it's a
+                # real bug we want to see.
+                if "out of memory" in str(exc).lower():
+                    print(
+                        f"  SKIPPED: {model_name} @ L={seq_len} — CUDA OOM: {_oom_summary(exc)}",
+                        flush=True,
+                    )
+                    skipped.append((model_name, seq_len, "OOM"))
+                    _reclaim_gpu_memory()
+                    continue
+                raise
+
+    if not summaries:
+        print("\nAll runs failed. No aggregates to write.", flush=True)
+        return
 
     (out_dir / "combined_summary.json").write_text(
         json.dumps([asdict(s) for s in summaries], indent=2)
@@ -864,6 +916,10 @@ def main() -> None:
     if combined_plot:
         print(f"combined plot:   {combined_plot}")
     print("chrome traces:   load at chrome://tracing")
+    if skipped:
+        print(f"\nskipped {len(skipped)} run(s) due to OOM:")
+        for model_name, seq_len, reason in skipped:
+            print(f"  - {model_name} @ L={seq_len} ({reason})")
 
 
 if __name__ == "__main__":
