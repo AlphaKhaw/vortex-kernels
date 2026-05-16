@@ -567,6 +567,7 @@ def _two_pass_bwd_grouped_kernel_dgrad(
         tiles_per_seq,
         d_tiles_per_chunk,
         effective_chunks_per_seq,  # chunks_per_seq
+        THREADBLOCK_SWIZZLE,
     )
     pid_chunk_start *= CHUNK_TILES_PER_PROGRAM
 

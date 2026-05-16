@@ -340,7 +340,7 @@ def _two_pass_fwd_grouped_kernel_v1(
     col_range = tl.arange(0, BLOCK_D)[None, :] * col_stride  # not needed, since should be contiguous along feature dim
 
     for tile_id in tl.range(start_pid, total_tiles, num_programs, num_stages=NUM_PIPELINE_STAGES):
-        pid_batch, pid_d, pid_chunk = get_program_ids(tile_id, tiles_per_seq, d_tiles_per_chunk, chunks_per_seq)
+        pid_batch, pid_d, pid_chunk = get_program_ids(tile_id, tiles_per_seq, d_tiles_per_chunk, chunks_per_seq, THREADBLOCK_SWIZZLE)
 
         # First determine offset by batch
         batch_offset = pid_batch * batch_stride
@@ -519,6 +519,7 @@ def _two_pass_fwd_grouped_kernel_v2(
         tiles_per_seq,
         d_tiles_per_chunk,
         effective_chunks_per_seq,  # chunks_per_seq
+        THREADBLOCK_SWIZZLE,
     )
     pid_chunk_start *= CHUNK_TILES_PER_PROGRAM
 
@@ -706,6 +707,7 @@ def _two_pass_fwd_refactor_kernel(
         tiles_per_seq,
         d_tiles_per_chunk,
         effective_chunks_per_seq,  # chunks_per_seq
+        THREADBLOCK_SWIZZLE,
     )
     pid_chunk_start *= CHUNK_TILES_PER_PROGRAM
 
