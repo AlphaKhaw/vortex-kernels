@@ -9,27 +9,25 @@ description = "Optimized Triton inference kernels for Vortex/Evo2 (fills vortex/
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 license = { file = "LICENSE" }
-authors = [
-    { name = "AlphaKhaw", email = "alphakhaw@gmail.com" }
-]
+authors = [{ name = "AlphaKhaw", email = "alphakhaw@gmail.com" }]
 dependencies = [
-    "einops>=0.8",
-    "numpy",
-    "packaging",
-    "pyyaml",
-    "torch>=2.7,<2.8",
-    "triton>=3.0; sys_platform == 'linux'",
-    "vtx>=1.0.8",
+  "einops>=0.8",
+  "numpy",
+  "packaging",
+  "pyyaml",
+  "torch>=2.7,<2.8",
+  "triton>=3.0; sys_platform == 'linux'",
+  "vtx>=1.0.8",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "basedpyright>=1.28",
-    "nvtx; sys_platform == 'linux'",
-    "pre-commit>=3.8",
-    "pytest>=8",
-    "pytest-benchmark",
-    "ruff>=0.6",
+  "basedpyright>=1.28",
+  "nvtx; sys_platform == 'linux'",
+  "pre-commit>=3.8",
+  "pytest>=8",
+  "pytest-benchmark",
+  "ruff>=0.6",
 ]
 bench = ["matplotlib", "pandas", "torch-tb-profiler"]
 evo2 = ["evo2>=0.5.3", "biopython", "huggingface_hub>=0.24,<0.27"]
@@ -43,34 +41,35 @@ include = ["vortex_kernels*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-markers = [
-    "gpu: test requires a CUDA device",
-    "slow: test takes >10s",
-]
-filterwarnings = [
-    "ignore::DeprecationWarning:torch\\..*",
-]
+markers = ["gpu: test requires a CUDA device", "slow: test takes >10s"]
+filterwarnings = ["ignore::DeprecationWarning:torch\\..*"]
 
 [tool.ruff]
 line-length = 100
 indent-width = 4
 target-version = "py312"
 
+# vortex_kernels/ops/hyena_se/ is vendored verbatim from upstream vortex
+# Keep ruff off it so `pixi run format` / `lint` never reformat vendored
+# code — that destroys its diffability against upstream and complicates the
+extend-exclude = ["vortex_kernels/ops/hyena_se"]
+force-exclude = true
+
 [tool.ruff.lint]
 select = [
-    "E",      # pycodestyle errors
-    "W",      # pycodestyle warnings
-    "F",      # pyflakes
-    "I",      # isort
-    "B",      # flake8-bugbear
-    "C4",     # flake8-comprehensions
-    "UP",     # pyupgrade
-    "SIM",    # flake8-simplify
-    "NPY",    # NumPy-specific rules
-    "PERF",   # perflint
+  "E",    # pycodestyle errors
+  "W",    # pycodestyle warnings
+  "F",    # pyflakes
+  "I",    # isort
+  "B",    # flake8-bugbear
+  "C4",   # flake8-comprehensions
+  "UP",   # pyupgrade
+  "SIM",  # flake8-simplify
+  "NPY",  # NumPy-specific rules
+  "PERF", # perflint
 ]
 ignore = [
-    "E501",   # line length handled by formatter
+  "E501", # line length handled by formatter
 ]
 fixable = ["ALL"]
 unfixable = []
@@ -90,17 +89,19 @@ venv = ".venv"
 typeCheckingMode = "standard"
 pythonVersion = "3.12"
 include = ["vortex_kernels", "tests", "benchmarks", "scripts"]
-exclude = ["**/__pycache__", ".venv", ".pixi"]
+# hyena_se is vendored upstream code — type-checking it just surfaces noise
+# from upstream's own gaps. Excluded for the same reason ruff is (see above).
+exclude = ["**/__pycache__", ".venv", ".pixi", "vortex_kernels/ops/hyena_se"]
 
 # Selective rule elevation — adjust to taste. basedpyright defaults many checks
 # to "hint" (greyed text in IDE); elevate to "warning" for yellow squiggles that
 # show up prominently but don't fail CI, or "error" to block.
-reportUnusedParameter = "hint"          # default — framework hooks keep their contract params
-reportMissingTypeStubs = "none"         # vortex / evo2 / triton don't ship stubs upstream
-reportMissingImports = "warning"        # downgrade from error — Linux-only deps expected to miss on macOS
-reportUnknownParameterType = "warning"  # catches missing annotations on our own params
-reportUnknownVariableType = "none"      # cascades from untyped torch/evo2 deps — unactionable
-reportUnknownMemberType = "none"        # same — torch/triton/vortex attrs surface as Unknown
-reportUnknownArgumentType = "none"      # same cascade
-reportUnknownLambdaType = "none"        # lambda in sorted(), etc. inherits from untyped iterables
-reportUnusedImport = "none"             # ruff F401 already handles this; basedpyright just duplicates
+reportUnusedParameter = "hint"         # default — framework hooks keep their contract params
+reportMissingTypeStubs = "none"        # vortex / evo2 / triton don't ship stubs upstream
+reportMissingImports = "warning"       # downgrade from error — Linux-only deps expected to miss on macOS
+reportUnknownParameterType = "warning" # catches missing annotations on our own params
+reportUnknownVariableType = "none"     # cascades from untyped torch/evo2 deps — unactionable
+reportUnknownMemberType = "none"       # same — torch/triton/vortex attrs surface as Unknown
+reportUnknownArgumentType = "none"     # same cascade
+reportUnknownLambdaType = "none"       # lambda in sorted(), etc. inherits from untyped iterables
+reportUnusedImport = "none"            # ruff F401 already handles this; basedpyright just duplicates
