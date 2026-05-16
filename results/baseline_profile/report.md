@@ -153,4 +153,3 @@ Profiled 4 run(s). CUDA times are summed across runs.
 - `layer_kinds_plot`: results/baseline_profile/plots/layer_kinds_evo2_7b_L65536.png
 - `op_categories_plot`: results/baseline_profile/plots/op_categories_evo2_7b_L65536.png
 - `summary`: results/baseline_profile/summary_evo2_7b_L65536.json
-
