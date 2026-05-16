@@ -49,10 +49,11 @@ line-length = 100
 indent-width = 4
 target-version = "py312"
 
-# vortex_kernels/ops/hyena_se/ is vendored verbatim from upstream vortex
-# Keep ruff off it so `pixi run format` / `lint` never reformat vendored
-# code — that destroys its diffability against upstream and complicates the
-extend-exclude = ["vortex_kernels/ops/hyena_se"]
+# Vendored upstream code — kept verbatim for diffability against vortex.
+# hyena_se is the mirrored CGCG kernel; reference/ holds the engine.py /
+# model.py correctness oracles. force-exclude also covers pre-commit, which
+# passes individually-staged files to ruff.
+extend-exclude = ["vortex_kernels/ops/hyena_se", "vortex_kernels/reference"]
 force-exclude = true
 
 [tool.ruff.lint]
@@ -89,9 +90,9 @@ venv = ".venv"
 typeCheckingMode = "standard"
 pythonVersion = "3.12"
 include = ["vortex_kernels", "tests", "benchmarks", "scripts"]
-# hyena_se is vendored upstream code — type-checking it just surfaces noise
-# from upstream's own gaps. Excluded for the same reason ruff is (see above).
-exclude = ["**/__pycache__", ".venv", ".pixi", "vortex_kernels/ops/hyena_se"]
+# Vendored upstream code (hyena_se kernel, reference/ oracles) — type-checking
+# it just surfaces noise from upstream's own gaps. Excluded like ruff (above).
+exclude = ["**/__pycache__", ".venv", ".pixi", "vortex_kernels/ops/hyena_se", "vortex_kernels/reference"]
 
 # Selective rule elevation — adjust to taste. basedpyright defaults many checks
 # to "hint" (greyed text in IDE); elevate to "warning" for yellow squiggles that
