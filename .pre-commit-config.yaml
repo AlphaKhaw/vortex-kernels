@@ -18,21 +18,17 @@ repos:
       - id: mixed-line-ending
         args: ['--fix=auto']
 
-  # Ruff for Python linting and formatting
+  # Ruff — full lint (ruleset from pyproject.toml [tool.ruff.lint]) + format.
+  # Single source for ruff in the project; the `lint` pixi task delegates
+  # here. The vendored kernel (vortex_kernels/ops/hyena_se) is skipped via
+  # extend-exclude + force-exclude in pyproject.toml.
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.11.4
     hooks:
       - id: ruff
-        args: [--select, I, --fix, --unsafe-fixes]
+        args: [--fix]
       - id: ruff-format
 
-  # UV lock file management
-  - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.5.7
-    hooks:
-      - id: uv-lock
-        # Only run if pyproject.toml was modified
-        files: ^pyproject\.toml$
 ci:
   autofix_commit_msg: '[pre-commit.ci] Auto format from pre-commit.com hooks'
   autoupdate_commit_msg: '[pre-commit.ci] pre-commit autoupdate'

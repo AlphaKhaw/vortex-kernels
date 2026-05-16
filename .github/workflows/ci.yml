@@ -1,0 +1,37 @@
+name: CI
+
+# Static checks only — ruff (lint + format) and basedpyright. The full test
+# suite needs the CUDA stack (torch + vortex + evo2), which cannot be built on
+# a GPU-less GitHub runner, so tests run on the RTX 4090 dev box / H100 instead
+# (see docs/phase2-task-breakdown.md). CI deliberately uses plain pip, not
+# pixi, so it stays fast and pixi-free.
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  static:
+    name: lint + type-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install tools
+        run: pip install pre-commit basedpyright
+
+      - name: Cache pre-commit hook environments
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
+
+      - name: Lint + format (ruff, via pre-commit)
+        run: pre-commit run --all-files --show-diff-on-failure
+
+      - name: Type-check (basedpyright)
+        run: basedpyright vortex_kernels

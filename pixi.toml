@@ -66,6 +66,7 @@ pytest = ">=8"
 pytest-benchmark = "*"
 ruff = ">=0.6"
 basedpyright = ">=1.28"
+pre-commit = ">=3.8"
 nvtx = "*"
 
 [feature.bench.pypi-dependencies]
@@ -83,10 +84,17 @@ default = { features = ["dev", "bench"], solve-group = "main" }
 
 [tasks]
 verify = "python scripts/verify_install.py"
-test = "pytest tests/"
-lint = "ruff check vortex_kernels tests benchmarks scripts"
-format = "ruff format vortex_kernels tests benchmarks scripts"
+# `test` excludes GPU-marked tests so it stays fast and `check` can use it;
+# run the GPU suite explicitly with `test-gpu`.
+test = "pytest tests/ -m 'not gpu'"
+test-gpu = "pytest tests/ -m gpu -v"
 typecheck = "basedpyright vortex_kernels"
+# `lint` delegates to pre-commit, the single ruff surface (lint + format) —
+# see .pre-commit-config.yaml. No separate `ruff` / `format` task.
+lint = "pre-commit run --all-files"
+# One-command quality gate: lint + typecheck + fast tests, stopping at the
+# first failure. Run before pushing; CI runs the same ruff + basedpyright.
+check = { depends-on = ["lint", "typecheck", "test"] }
 # The task is a bare entry point. pixi run TASK ARGS appends ARGS to the
 # task's cmd, so hardcoding --models/--seq-lens here would duplicate them
 # when the user overrides. profile_evo2.py's argparse defaults already
