@@ -217,9 +217,7 @@ chrome_trace_*.json
 results/scratch/
 results/**/*.tmp
 
-# Claude Code project-local instructions (not for public repo)
+# Claude Code project-local — internal dev docs, not for the public repo
 CLAUDE.md
-RUNBOOK.md
-BLOG_OUTLINE.md
 docs/
-IMPLEMENTATION_PLAN.md
+.claude/skills/

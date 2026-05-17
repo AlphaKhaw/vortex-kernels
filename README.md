@@ -44,11 +44,10 @@ All subsequent commands are Pixi tasks:
 
 ```bash
 pixi run verify        # sanity check imports
-pixi run test          # pytest
+pixi run test          # pytest (GPU-marked tests excluded)
+pixi run test-gpu      # GPU-marked tests
+pixi run check         # lint + typecheck + fast tests, one gate
 pixi run profile       # baseline Evo2 profiling
-pixi run lint          # ruff check
-pixi run format        # ruff format
-pixi run typecheck     # basedpyright
 pixi shell             # drop into the activated env manually
 ```
 
@@ -79,14 +78,14 @@ pytest tests/  # most tests will skip without a GPU
 
 ## Workflow
 
-1. **Profile baseline.** `pixi run profile` — confirms FFT dominance before
-   touching any kernel code.
-2. **Tier 2 comparison.** Enable `use_flashfft: True` in the Evo2 config and rerun.
-3. **Write Triton kernel.** Start with `vortex_kernels/interfaces/hcm.py` (biggest
-   unclaimed opportunity — HCM's FFT path is never accelerated by FlashFFTConv).
-4. **Correctness tests.** `pixi run test`.
-5. **Three-tier end-to-end.** Scripts under `benchmarks/bench_tier{1,2,3}_*.py`.
-6. **Open the vortex issue** with data in hand — template in `docs/issue_draft.md`.
+1. **Profile baseline.** `pixi run profile` quantifies FFT-conv cost across
+   the HCL/HCM/HCS layers. Results land in `results/baseline_profile/`.
+2. **Implement a kernel.** The three kernels live in `vortex_kernels/ops/` —
+   `hcs_interface.py`, `hcm_interface.py`, `hcl_interface.py`.
+3. **Correctness tests.** `pixi run test` (CPU; GPU tests skip) and
+   `pixi run test-gpu` (GPU-marked).
+4. **Benchmark.** Microbenchmarks under `benchmarks/`.
+5. **Upstream PR** against vortex — scope and motivation in `docs/issue_draft.md`.
 
 ## License
 
