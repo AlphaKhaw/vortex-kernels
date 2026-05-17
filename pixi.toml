@@ -1,7 +1,7 @@
 [workspace]
 name = "vortex-kernels"
 version = "0.1.0"
-description = "Optimized Triton inference kernels for Vortex/Evo2"
+description = "Profiling + benchmark harness for the Vortex/Evo2 Triton kernel contribution"
 authors = ["AlphaKhaw"]
 channels = ["conda-forge"]
 platforms = ["linux-64"]
@@ -60,6 +60,12 @@ huggingface_hub = ">=0.24,<0.27"
 evo2 = ">=0.5.3"
 biopython = "*"
 vortex-kernels = { path = ".", editable = true }
+# Editable install of the local vortex fork, cloned as a sibling dir
+# (../vortex) by setup_vm.sh. Overrides the `vtx` that `evo2` pulls from
+# PyPI, so edits to ../vortex/vortex/{ops,model}/*.py are live in this env
+# with no reinstall. The fork carries the HC{S,M,L} kernels and the
+# use_triton_* dispatch. See the vortex-kernels-dev skill.
+vtx = { path = "../vortex", editable = true }
 
 [feature.dev.pypi-dependencies]
 pytest = ">=8"
@@ -100,4 +106,3 @@ check = { depends-on = ["lint", "typecheck", "test"] }
 # when the user overrides. profile_evo2.py's argparse defaults already
 # cover the no-arg case (evo2_7b_base, seq_lens 8192 32768).
 profile = "python -u benchmarks/profile_evo2.py"
-clone-vortex = "test -d $HOME/vortex || (git clone https://github.com/Zymrael/vortex.git $HOME/vortex && cd $HOME/vortex && git submodule update --init --recursive)"
