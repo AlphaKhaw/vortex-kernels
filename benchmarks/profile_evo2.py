@@ -865,7 +865,32 @@ def main() -> None:
     p.add_argument("--output-dir", default="results/baseline_profile")
     p.add_argument("--num-runs", type=int, default=5)
     p.add_argument("--warmup", type=int, default=3)
+    p.add_argument(
+        "--triton",
+        default="",
+        help=(
+            "Comma-separated kernels to enable, e.g. 'hcs' or 'hcs,hcm,hcl'. "
+            "Empty (default) profiles the stock flag-off baseline. Sets the "
+            "VK_HCS / VK_HCM / VK_HCL env vars that the vortex fork's engine.py "
+            "reads to dispatch the Triton kernels."
+        ),
+    )
     args = p.parse_args()
+
+    # Translate --triton into the VK_* env vars the vortex fork's engine.py
+    # checks per call. Set before any model forward; empty -> all off -> the
+    # stock baseline, byte-identical to upstream vortex.
+    valid_kernels = {"hcs", "hcm", "hcl"}
+    enabled = {k.strip() for k in args.triton.split(",") if k.strip()}
+    unknown = enabled - valid_kernels
+    if unknown:
+        p.error(
+            f"--triton: unknown kernel(s) {sorted(unknown)}; choose from {sorted(valid_kernels)}"
+        )
+    for name in sorted(valid_kernels):
+        os.environ[f"VK_{name.upper()}"] = "1" if name in enabled else "0"
+    if enabled:
+        print(f"profile_evo2: Triton kernels enabled: {sorted(enabled)}", flush=True)
 
     out_dir = Path(args.output_dir)
     summaries: list[RunSummary] = []
