@@ -1,91 +1,68 @@
 # vortex-kernels
 
-Optimized Triton inference kernels for [Vortex](https://github.com/Zymrael/vortex) /
-[Evo2](https://github.com/ArcInstitute/evo2). Fills the empty scaffolding slots
-`vortex/ops/hcl_interface.py`, `hcm_interface.py`, `hcs_interface.py` with fused
-kernels that reduce FFT-conv kernel launches on the HCL/HCM hot paths.
+Profiling and benchmark harness for a third-party Triton kernel contribution to
+[Vortex](https://github.com/Zymrael/vortex) /
+[Evo2](https://github.com/ArcInstitute/evo2) — fused inference kernels for the
+three Hyena conv layer kinds (HCS / HCM / HCL).
 
-**Third-party.** Not affiliated with Arc Institute or the Vortex core team. The
-goal is an upstream PR against [Zymrael/vortex#16](https://github.com/Zymrael/vortex/issues/16);
-until that merges, this package monkey-patches `vortex` at import time as a
-drop-in accelerator.
+**Third-party.** Not affiliated with Arc Institute or the Vortex core team.
+Tracks [Zymrael/vortex#16](https://github.com/Zymrael/vortex/issues/16) and
+[#76](https://github.com/Zymrael/vortex/issues/76).
 
-## Scope
+## How this is organized
 
-Evo2 7B spends ~40% of forward-pass CUDA time in FFT convolutions across HCL/HCM
-layers. `use_flashfft: False` is the default in every shipped config; flipping it
-recovers ~1.5x on HCL alone. But HCM's `parallel_fir` branch never dispatches to
-FlashFFT — it always calls the unfused `fftconv_func`, even when `use_flashfft=True`.
-That's the primary optimization target here.
+The kernels are developed on a **vortex fork** (branch `triton-hc-kernels`),
+each opt-in behind a `use_triton_*` config flag — that branch is the upstream
+PR. This repo is the **harness**: the profiler, the benchmarks, the measured
+results, and the writeup.
 
-Three planned deliverables:
+| Repo | Holds |
+|---|---|
+| vortex fork (`../vortex`) | the three kernels + the `use_triton_*` dispatch — the PR |
+| this repo | `benchmarks/` profiler, `results/` artifacts, `docs/` |
 
-| Interface | Target | Status |
-|---|---|---|
-| `hcm_interface.py` | Fused fftconv_func replacing 6-launch path in `parallel_fir` (`fir_length >= 128`) | stub |
-| `hcs_interface.py` | Wire existing `vortex/ops/hyena_x/triton_indirect_fwd.py` into `parallel_fir` default branch | stub |
-| `hcl_interface.py` | Fused scale/multiply around cuFFT in `parallel_iir` (marginal if FlashFFTConv is installed) | stub |
+## The kernels
 
-## Setup — GPU VM (RunPod / Lambda / any CUDA 12.9+ host)
+The HCL/HCM/HCS Hyena conv layers are ~21% of Evo2 7B forward CUDA time at long
+context (L=65k), and `use_flashfft: False` is the default in every shipped
+config — so all three run unfused. The three target layer kinds:
 
-### Primary: Pixi (fast, lockfile, task runner)
+| Layer | Filter | Kernel | Dispatches in |
+|---|---|---|---|
+| HCS | length 7 | wire the existing CGCG Triton kernel (`vortex/ops/hyena_se/`) | `parallel_fir`, gated short conv |
+| HCM | length 128 | fused FFT-conv epilogues around cuFFT | `parallel_fir`, `fir_length >= 128` |
+| HCL | length L | tiled `compute_filter` + FFT-conv — avoids the `(D, state_size, L)` fp32 tensor that OOMs Evo2 at L=131k | `parallel_iir` |
+
+Each is gated by a flag defaulting to off — zero behavioral change when off.
+
+## Setup — Linux + CUDA 12.9 host
 
 ```bash
-git clone <this repo> && cd vortex-kernels
+git clone <this repo> ~/vortex-kernels && cd ~/vortex-kernels
 bash scripts/setup_vm.sh
 ```
 
-That installs [Pixi](https://pixi.sh) (Rust-based conda-forge resolver, 2-5× faster
-than micromamba), resolves everything from `pixi.toml` (CUDA 12.9 + conda-forge
-pytorch 2.7.x with CUDA build + TE 2.3.0 binary + flash-attn wheel + evo2),
-clones vortex for source work, and runs the sanity check.
-
-All subsequent commands are Pixi tasks:
+`setup_vm.sh` installs [Pixi](https://pixi.sh), clones vortex as a sibling
+(`../vortex`) on the `triton-hc-kernels` branch, then `pixi install` resolves
+the full stack (CUDA 12.9, PyTorch 2.7 cuda build, Transformer Engine,
+flash-attn, evo2) and editable-installs the fork.
 
 ```bash
-pixi run verify        # sanity check imports
-pixi run test          # pytest (GPU-marked tests excluded)
+pixi run verify        # sanity-check imports
+pixi run test          # pytest (GPU tests excluded)
 pixi run test-gpu      # GPU-marked tests
-pixi run check         # lint + typecheck + fast tests, one gate
-pixi run profile       # baseline Evo2 profiling
-pixi shell             # drop into the activated env manually
-```
-
-For the Tier-2 FlashFFTConv benchmark comparison, add a dedicated feature
-when you need it — the upstream package name is `monarch-cuda`, not
-`flash-fft-conv`, so it is not pre-wired in `pixi.toml` by default.
-
-### Fallback: conda/micromamba + uv (traditional)
-
-Matches the install docs in the Vortex and Evo2 READMEs verbatim:
-
-```bash
-bash scripts/setup_vm_conda.sh
-```
-
-Uses `environment.yml` for the conda-forge base (CUDA + TE) and `uv` for the pip
-layer. Works without Pixi.
-
-### Local macOS development
-
-CUDA bits won't work on macOS, but you can edit / type-check / write unit tests
-that skip if `torch.cuda.is_available() is False`:
-
-```bash
-pip install -e ".[dev]"
-pytest tests/  # most tests will skip without a GPU
+pixi run check         # lint + typecheck + fast tests
+pixi run profile       # Evo2 profiling
 ```
 
 ## Workflow
 
-1. **Profile baseline.** `pixi run profile` quantifies FFT-conv cost across
-   the HCL/HCM/HCS layers. Results land in `results/baseline_profile/`.
-2. **Implement a kernel.** The three kernels live in `vortex_kernels/ops/` —
-   `hcs_interface.py`, `hcm_interface.py`, `hcl_interface.py`.
-3. **Correctness tests.** `pixi run test` (CPU; GPU tests skip) and
-   `pixi run test-gpu` (GPU-marked).
-4. **Benchmark.** Microbenchmarks under `benchmarks/`.
-5. **Upstream PR** against vortex — scope and motivation in `docs/issue_draft.md`.
+1. **Profile the baseline** — `pixi run profile`; results in `results/baseline_profile/`.
+2. **Implement a kernel** in the fork, behind its `use_triton_*` flag.
+3. **Measure the progression** — profile base vs +HCS vs +HCS+HCM vs
+   +HCS+HCM+HCL by toggling flags; artifacts in `results/progression/`.
+4. **Upstream PR** — the fork branch; scope tracked in
+   [Zymrael/vortex#76](https://github.com/Zymrael/vortex/issues/76).
 
 ## License
 
