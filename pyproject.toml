@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "vortex-kernels"
 version = "0.1.0"
-description = "Optimized Triton inference kernels for Vortex/Evo2 (fills vortex/ops/hc*_interface.py)"
+description = "Profiling + benchmark harness for the Vortex/Evo2 Triton HC{S,M,L} kernel contribution"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 license = { file = "LICENSE" }
@@ -49,11 +49,10 @@ line-length = 100
 indent-width = 4
 target-version = "py312"
 
-# Vendored upstream code — kept verbatim for diffability against vortex.
-# hyena_se is the mirrored CGCG kernel; reference/ holds the engine.py /
-# model.py correctness oracles. force-exclude also covers pre-commit, which
-# passes individually-staged files to ruff.
-extend-exclude = ["vortex_kernels/ops/hyena_se", "vortex_kernels/reference"]
+# reference/ holds verbatim engine.py / model.py correctness oracles — kept
+# diffable against vortex, not ours to reformat. force-exclude also covers
+# pre-commit, which passes individually-staged files to ruff.
+extend-exclude = ["vortex_kernels/reference"]
 force-exclude = true
 
 [tool.ruff.lint]
@@ -88,9 +87,9 @@ docstring-code-line-length = "dynamic"
 typeCheckingMode = "standard"
 pythonVersion = "3.12"
 include = ["vortex_kernels", "tests", "benchmarks", "scripts"]
-# Vendored upstream code (hyena_se kernel, reference/ oracles) — type-checking
-# it just surfaces noise from upstream's own gaps. Excluded like ruff (above).
-exclude = ["**/__pycache__", ".venv", ".pixi", "vortex_kernels/ops/hyena_se", "vortex_kernels/reference"]
+# reference/ holds verbatim upstream oracles — type-checking them just
+# surfaces noise from upstream's own gaps. Excluded like ruff (above).
+exclude = ["**/__pycache__", ".venv", ".pixi", "vortex_kernels/reference"]
 
 # Selective rule elevation — adjust to taste. basedpyright defaults many checks
 # to "hint" (greyed text in IDE); elevate to "warning" for yellow squiggles that

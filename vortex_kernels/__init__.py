@@ -1,15 +1,13 @@
 """
-vortex-kernels: optimized inference kernels for Vortex/Evo2.
+vortex-kernels — profiling and benchmark harness for the Vortex/Evo2 Triton
+HC{S,M,L} kernel work.
 
-Third-party. Not affiliated with Arc Institute or the Vortex core team.
+The kernels themselves are developed in a vortex fork (branch
+`triton-hc-kernels`, editable-installed as `vtx`) — see the vortex-kernels-dev
+skill. This package carries the harness version and the frozen correctness
+oracles in `reference/`.
 """
 
-import os
-
-from .patching import patch_vortex, unpatch_vortex
 from .version import __version__
 
-if os.environ.get("VORTEX_KERNELS_NO_AUTOPATCH", "0") != "1":
-    patch_vortex()
-
-__all__ = ["__version__", "patch_vortex", "unpatch_vortex"]
+__all__ = ["__version__"]
