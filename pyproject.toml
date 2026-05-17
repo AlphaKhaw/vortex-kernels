@@ -85,8 +85,6 @@ docstring-code-format = true
 docstring-code-line-length = "dynamic"
 
 [tool.basedpyright]
-venvPath = "."
-venv = ".venv"
 typeCheckingMode = "standard"
 pythonVersion = "3.12"
 include = ["vortex_kernels", "tests", "benchmarks", "scripts"]
