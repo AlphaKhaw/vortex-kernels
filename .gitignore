@@ -217,7 +217,7 @@ chrome_trace_*.json
 results/scratch/
 results/**/*.tmp
 
-# Claude Code project-local — internal dev docs, not for the public repo
-CLAUDE.md
-docs/
-.claude/skills/
+# Claude Code — only machine-local settings stay out of git. The skill,
+# docs/, and CLAUDE.md are committed (private repo) so both dev machines
+# sync via git pull.
+.claude/settings.local.json
