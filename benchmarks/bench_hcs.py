@@ -76,7 +76,7 @@ def _bench_one(L: int) -> dict[str, float]:
     """
     torch.manual_seed(0)
     # torch.randn defaults to float32 -- the dtype the HCS conv runs in.
-    u: torch.Tensor = torch.randn(_D, 1, L, device="cuda")
+    u: torch.Tensor = torch.randn(1, _D, L, device="cuda")
     weight: torch.Tensor = torch.randn(_D, 1, _FIR_LENGTH, device="cuda")
 
     max_diff: float = (hcs_depthwise_conv(u, weight) - _conv1d(u, weight)).abs().max().item()
@@ -120,6 +120,9 @@ def main() -> None:
         "fir_length": _FIR_LENGTH,
         "results": rows,
     }
+
+    for L in _SEQ_LENS:
+        rows.append(_bench_one(L))
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2) + "\n")
