@@ -7,12 +7,13 @@
   "dtype": "float32",
   "hidden_size": 4096,
   "state_size": 16,
+  "oom_crossover_seq_len": 65536,
   "results": [
     {
       "seq_len": 2048,
-      "stock_ms": 4.97066,
-      "kernel_ms": 1.54392,
-      "speedup": 3.219,
+      "stock_ms": 4.97411,
+      "kernel_ms": 1.54086,
+      "speedup": 3.228,
       "stock_peak_gb": 1.063,
       "kernel_peak_gb": 0.469,
       "mem_ratio": 2.26,
@@ -20,9 +21,9 @@
     },
     {
       "seq_len": 8192,
-      "stock_ms": 20.9513,
-      "kernel_ms": 7.1611,
-      "speedup": 2.926,
+      "stock_ms": 20.95122,
+      "kernel_ms": 7.16562,
+      "speedup": 2.924,
       "stock_peak_gb": 4.251,
       "kernel_peak_gb": 1.876,
       "mem_ratio": 2.27,
@@ -30,13 +31,43 @@
     },
     {
       "seq_len": 32768,
-      "stock_ms": 94.71389,
-      "kernel_ms": 39.4877,
-      "speedup": 2.399,
+      "stock_ms": 94.77494,
+      "kernel_ms": 39.48851,
+      "speedup": 2.4,
       "stock_peak_gb": 17.001,
       "kernel_peak_gb": 8.501,
       "mem_ratio": 2.0,
       "max_diff": 0.00341796875
+    },
+    {
+      "seq_len": 65536,
+      "stock_ms": "OOM",
+      "kernel_ms": 78.78349,
+      "speedup": null,
+      "stock_peak_gb": "OOM",
+      "kernel_peak_gb": 17.001,
+      "mem_ratio": null,
+      "max_diff": null
+    },
+    {
+      "seq_len": 98304,
+      "stock_ms": "OOM",
+      "kernel_ms": 142.60663,
+      "speedup": null,
+      "stock_peak_gb": "OOM",
+      "kernel_peak_gb": 25.501,
+      "mem_ratio": null,
+      "max_diff": null
+    },
+    {
+      "seq_len": 131072,
+      "stock_ms": "OOM",
+      "kernel_ms": 157.46867,
+      "speedup": null,
+      "stock_peak_gb": "OOM",
+      "kernel_peak_gb": 34.001,
+      "mem_ratio": null,
+      "max_diff": null
     }
   ]
 }

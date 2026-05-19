@@ -1,12 +1,17 @@
 """
-Microbenchmark for the HCL kernels.
+Microbenchmark for the HCL kernels, including the OOM crossover.
 
 Compares the stock HCL conv -- compute_filter's (D, state_size, L) reduction
 plus the parallel_iir FFT branch -- against the fused path: _hcl_compute_filter
 (the tiled filter build) followed by hcl_fft_conv. Reports latency and, the
-headline, peak GPU memory: the stock filter build materialises a
-(D, state_size, L) fp32 intermediate that OOMs evo2_7b at L=131k; the tiled
-kernel never builds it.
+headline, peak GPU memory.
+
+The stock filter build materialises a (D, state_size, L) fp32 intermediate
+that grows linearly with the sequence length and eventually OOMs; the tiled
+kernel never builds it. The benchmark sweeps a range of sequence lengths and
+records the crossover -- the shortest L at which the stock path OOMs while the
+kernel still completes. A stock path that OOMs is caught and recorded as "OOM"
+rather than aborting the sweep.
 
 Results are written to results/microbench/hcl.json for commit alongside the
 kernels.
@@ -25,7 +30,9 @@ from vortex.ops.hcl_interface import _hcl_compute_filter, hcl_fft_conv
 # evo2_7b HCL layer: hidden_size 4096, state_size 16.
 _D: int = 4096
 _S: int = 16
-_SEQ_LENS: list[int] = [2048, 8192, 32768]
+# Sweeps from short layers up past the stock filter build's OOM point so the
+# crossover is bracketed; the kernel path is expected to survive every length.
+_SEQ_LENS: list[int] = [2048, 8192, 32768, 65536, 98304, 131072]
 
 
 def _median_ms(fn: Callable[[], object]) -> float:
@@ -39,6 +46,43 @@ def _median_ms(fn: Callable[[], object]) -> float:
         float: Median wall-clock milliseconds.
     """
     return triton.testing.do_bench(fn)  # pyright: ignore[reportReturnType]
+
+
+def _peak_gb(fn: Callable[[], object]) -> float:
+    """
+    Peak CUDA allocator GiB for a single call of fn.
+
+    Args:
+        fn (Callable[[], object]): Function to measure.
+
+    Returns:
+        float: Peak allocated GiB since the reset.
+    """
+    torch.cuda.synchronize()
+    torch.cuda.reset_peak_memory_stats()
+    fn()
+    torch.cuda.synchronize()
+    return torch.cuda.max_memory_allocated() / 2**30
+
+
+def _measure(fn: Callable[[], torch.Tensor]) -> tuple[float, float] | None:
+    """
+    Measure latency and peak memory for fn, or report an OOM.
+
+    Args:
+        fn (Callable[[], torch.Tensor]): The conv path to measure.
+
+    Returns:
+        tuple[float, float] | None: (median ms, peak GiB), or None when the
+        path runs out of GPU memory.
+    """
+    try:
+        ms = _median_ms(fn)
+        gb = _peak_gb(fn)
+    except torch.cuda.OutOfMemoryError:
+        torch.cuda.empty_cache()
+        return None
+    return ms, gb
 
 
 def _stock(
@@ -79,32 +123,20 @@ def _kernel(
     return hcl_fft_conv(h, x1v, x2, D, L, fft_size)
 
 
-def _peak_gb(fn: Callable[[], object]) -> float:
-    """
-    Peak CUDA allocator GiB for a single call of fn.
-
-    Args:
-        fn (Callable[[], object]): Function to measure.
-
-    Returns:
-        float: Peak allocated GiB since the reset.
-    """
-    torch.cuda.synchronize()
-    torch.cuda.reset_peak_memory_stats()
-    fn()
-    torch.cuda.synchronize()
-    return torch.cuda.max_memory_allocated() / 2**30
-
-
-def _bench_one(L: int) -> dict[str, float]:
+def _bench_one(L: int) -> dict[str, object]:
     """
     Benchmark the stock HCL conv and the fused kernels at sequence length L.
+
+    The stock path is measured inside an OOM guard: past the crossover length
+    its (D, state_size, L) filter intermediate no longer fits, and the row
+    records "OOM" for the stock columns while still reporting the kernel.
 
     Args:
         L (int): Sequence length.
 
     Returns:
-        dict[str, float]: Latency, peak memory and the correctness gap.
+        dict[str, object]: Latency, peak memory, the speedup/ratio where both
+        paths fit, and the correctness gap.
     """
     torch.manual_seed(0)
     fft_size = 2 * L
@@ -122,22 +154,55 @@ def _bench_one(L: int) -> dict[str, float]:
     def kernel() -> torch.Tensor:
         return _kernel(residues, log_poles, t, x1v, x2, bias, L, fft_size)
 
-    max_diff: float = (kernel() - stock()).abs().max().item()
-    stock_ms: float = _median_ms(stock)
-    kernel_ms: float = _median_ms(kernel)
-    stock_gb: float = _peak_gb(stock)
-    kernel_gb: float = _peak_gb(kernel)
+    # Measure the kernel first, then free its cached blocks so the stock path
+    # gets a fragmentation-free shot -- the OOM crossover must be a true
+    # capacity limit, not an allocator artefact.
+    kernel_stats = _measure(kernel)
+    torch.cuda.empty_cache()
+    stock_stats = _measure(stock)
+
+    max_diff: float | None = None
+    speedup: float | None = None
+    mem_ratio: float | None = None
+    if kernel_stats is not None and stock_stats is not None:
+        speedup = round(stock_stats[0] / kernel_stats[0], 3)
+        mem_ratio = round(stock_stats[1] / kernel_stats[1], 2)
+        try:
+            max_diff = (kernel() - stock()).abs().max().item()
+        except torch.cuda.OutOfMemoryError:
+            torch.cuda.empty_cache()
 
     return {
         "seq_len": L,
-        "stock_ms": round(stock_ms, 5),
-        "kernel_ms": round(kernel_ms, 5),
-        "speedup": round(stock_ms / kernel_ms, 3),
-        "stock_peak_gb": round(stock_gb, 3),
-        "kernel_peak_gb": round(kernel_gb, 3),
-        "mem_ratio": round(stock_gb / kernel_gb, 2),
+        "stock_ms": round(stock_stats[0], 5) if stock_stats is not None else "OOM",
+        "kernel_ms": round(kernel_stats[0], 5) if kernel_stats is not None else "OOM",
+        "speedup": speedup,
+        "stock_peak_gb": round(stock_stats[1], 3) if stock_stats is not None else "OOM",
+        "kernel_peak_gb": round(kernel_stats[1], 3) if kernel_stats is not None else "OOM",
+        "mem_ratio": mem_ratio,
         "max_diff": max_diff,
     }
+
+
+def _cell(value: object, width: int, numfmt: str = "") -> str:
+    """
+    Right-align a table cell, formatting numbers and passing sentinels through.
+
+    Args:
+        value (object): A numeric measurement, None, or a string sentinel.
+        width (int): Column width.
+        numfmt (str): Format spec applied to numeric values only.
+
+    Returns:
+        str: The right-aligned cell text.
+    """
+    if value is None:
+        text = "-"
+    elif isinstance(value, int | float):
+        text = format(value, numfmt)
+    else:
+        text = str(value)
+    return text.rjust(width)
 
 
 def main() -> None:
@@ -156,7 +221,16 @@ def main() -> None:
     if not torch.cuda.is_available():
         raise SystemExit("bench_hcl requires a CUDA device")
 
-    rows: list[dict[str, float]] = []
+    rows: list[dict[str, object]] = []
+    for L in _SEQ_LENS:
+        rows.append(_bench_one(L))
+        torch.cuda.empty_cache()
+
+    crossover = next(
+        (r["seq_len"] for r in rows if r["stock_ms"] == "OOM" and r["kernel_ms"] != "OOM"),
+        None,
+    )
+
     report = {
         "kernel": "hcl_fft_conv + _hcl_compute_filter",
         "device": torch.cuda.get_device_name(0),
@@ -166,27 +240,57 @@ def main() -> None:
         "dtype": "float32",
         "hidden_size": _D,
         "state_size": _S,
+        "oom_crossover_seq_len": crossover,
         "results": rows,
     }
-
-    for L in _SEQ_LENS:
-        rows.append(_bench_one(L))
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2) + "\n")
 
     print(
-        f"{'seq_len':>8} {'stock_ms':>10} {'kernel_ms':>11} {'speedup':>9} "
-        f"{'stock_GB':>10} {'kernel_GB':>11} {'mem_ratio':>11} {'max_diff':>10}"
+        _cell("seq_len", 8)
+        + " "
+        + _cell("stock_ms", 10)
+        + " "
+        + _cell("kernel_ms", 11)
+        + " "
+        + _cell("speedup", 9)
+        + " "
+        + _cell("stock_GB", 10)
+        + " "
+        + _cell("kernel_GB", 11)
+        + " "
+        + _cell("mem_ratio", 11)
+        + " "
+        + _cell("max_diff", 11)
     )
     for row in rows:
         print(
-            f"{row['seq_len']:>8} {row['stock_ms']:>10.4f} {row['kernel_ms']:>11.4f} "
-            f"{row['speedup']:>8.3f}x {row['stock_peak_gb']:>10.3f} "
-            f"{row['kernel_peak_gb']:>11.3f} {row['mem_ratio']:>10.2f}x "
-            f"{row['max_diff']:>10.2e}"
+            _cell(row["seq_len"], 8)
+            + " "
+            + _cell(row["stock_ms"], 10, ".4f")
+            + " "
+            + _cell(row["kernel_ms"], 11, ".4f")
+            + " "
+            + _cell(row["speedup"], 9, ".3f")
+            + " "
+            + _cell(row["stock_peak_gb"], 10, ".3f")
+            + " "
+            + _cell(row["kernel_peak_gb"], 11, ".3f")
+            + " "
+            + _cell(row["mem_ratio"], 11, ".2f")
+            + " "
+            + _cell(row["max_diff"], 11, ".2e")
         )
-    print(f"\nwrote {args.output}")
+
+    if crossover is not None:
+        print(
+            f"\nOOM crossover: the stock filter build OOMs at L={crossover}, "
+            f"where the kernel still completes -- the memory unlock."
+        )
+    else:
+        print("\nno OOM crossover in this sweep -- the stock path fit every L")
+    print(f"wrote {args.output}")
 
 
 if __name__ == "__main__":
