@@ -213,9 +213,11 @@ __marimo__/
 .hf_cache/
 profiler_output/
 chrome_trace_*.json
-# Keep results/*.json committed for reproducibility; ignore scratch
+# Keep results/*.json committed for reproducibility; ignore scratch and the
+# multi-MB chrome-tracing dumps -- the JSON summaries + plots suffice.
 results/scratch/
 results/**/*.tmp
+results/**/trace_*.json
 
 # Claude Code — only machine-local settings stay out of git. The skill,
 # docs/, and CLAUDE.md are committed (private repo) so both dev machines
