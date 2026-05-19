@@ -697,9 +697,9 @@ Two Triton kernel candidates to write (the exact split is a Phase 3
 design call once we know whether CGCG@128 works — see
 [`gcg_fwd_ref_corrected`](gcg_fwd_ref_corrected.md) target):
 
-1. `mul_complex_bcast_kernel` — fuses step 2's `/fft_size` and step
+1. `_hcm_complex_mul` — fuses step 2's `/fft_size` and step
    3's broadcast adjust into step 5a's complex multiply
-2. `bias_residual_cast_kernel` — fuses step 6's skip-residual and
+2. `_hcm_bias_residual` — fuses step 6's skip-residual and
    step 7's dtype cast into the irfft's output write
 
 ## Where `fftconv_func` is used
