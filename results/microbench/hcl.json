@@ -1,0 +1,42 @@
+{
+  "kernel": "hcl_fft_conv + _hcl_compute_filter",
+  "device": "NVIDIA GeForce RTX 4090",
+  "torch": "2.7.1",
+  "triton": "3.3.1",
+  "platform": "Linux-6.17.0-23-generic-x86_64-with-glibc2.39",
+  "dtype": "float32",
+  "hidden_size": 4096,
+  "state_size": 16,
+  "results": [
+    {
+      "seq_len": 2048,
+      "stock_ms": 4.97066,
+      "kernel_ms": 1.54392,
+      "speedup": 3.219,
+      "stock_peak_gb": 1.063,
+      "kernel_peak_gb": 0.469,
+      "mem_ratio": 2.26,
+      "max_diff": 0.00048828125
+    },
+    {
+      "seq_len": 8192,
+      "stock_ms": 20.9513,
+      "kernel_ms": 7.1611,
+      "speedup": 2.926,
+      "stock_peak_gb": 4.251,
+      "kernel_peak_gb": 1.876,
+      "mem_ratio": 2.27,
+      "max_diff": 0.001220703125
+    },
+    {
+      "seq_len": 32768,
+      "stock_ms": 94.71389,
+      "kernel_ms": 39.4877,
+      "speedup": 2.399,
+      "stock_peak_gb": 17.001,
+      "kernel_peak_gb": 8.501,
+      "mem_ratio": 2.0,
+      "max_diff": 0.00341796875
+    }
+  ]
+}
