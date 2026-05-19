@@ -12,13 +12,13 @@ Tracks [Zymrael/vortex#16](https://github.com/Zymrael/vortex/issues/16) and
 ## How this is organized
 
 The kernels are developed on a **vortex fork** (branch `triton-hc-kernels`),
-each opt-in behind a `use_triton_*` config flag — that branch is the upstream
+each opt-in behind a `use_{hcs,hcm,hcl}_kernel` config flag — that branch is the upstream
 PR. This repo is the **harness**: the profiler, the benchmarks, the measured
 results, and the writeup.
 
 | Repo | Holds |
 |---|---|
-| vortex fork (`../vortex`) | the three kernels + the `use_triton_*` dispatch — the PR |
+| vortex fork (`../vortex`) | the three kernels + the `use_{hcs,hcm,hcl}_kernel` dispatch — the PR |
 | this repo | `benchmarks/` profiler, `results/` artifacts, `docs/` |
 
 ## The kernels
@@ -29,7 +29,7 @@ config — so all three run unfused. The three target layer kinds:
 
 | Layer | Filter | Kernel | Dispatches in |
 |---|---|---|---|
-| HCS | length 7 | wire the existing CGCG Triton kernel (`vortex/ops/hyena_se/`) | `parallel_fir`, gated short conv |
+| HCS | length 7 | from-scratch depthwise-conv Triton kernel | `parallel_fir`, gated short conv |
 | HCM | length 128 | fused FFT-conv epilogues around cuFFT | `parallel_fir`, `fir_length >= 128` |
 | HCL | length L | tiled `compute_filter` + FFT-conv — avoids the `(D, state_size, L)` fp32 tensor that OOMs Evo2 at L=131k | `parallel_iir` |
 
@@ -58,7 +58,7 @@ pixi run profile       # Evo2 profiling
 ## Workflow
 
 1. **Profile the baseline** — `pixi run profile`; results in `results/baseline_profile/`.
-2. **Implement a kernel** in the fork, behind its `use_triton_*` flag.
+2. **Implement a kernel** in the fork, behind its `use_*_kernel` flag.
 3. **Measure the progression** — profile base vs +HCS vs +HCS+HCM vs
    +HCS+HCM+HCL by toggling flags; artifacts in `results/progression/`.
 4. **Upstream PR** — the fork branch; scope tracked in
