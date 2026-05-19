@@ -1,0 +1,137 @@
+"""
+Microbenchmark for the HCS depthwise conv Triton kernel.
+
+Compares the fused Triton kernel (`vortex.ops.hcs_interface.hcs_depthwise_conv`)
+against `F.conv1d` (cuDNN) on the depthwise causal conv that defines an HCS
+layer's time mixing. Both run in fp32 at evo2_7b shapes (D=4096, fir_length=7).
+
+Results are written to `results/microbench/hcs.json` for commit alongside the
+kernel.
+"""
+
+import argparse
+import json
+import platform
+from collections.abc import Callable
+from pathlib import Path
+
+import torch
+import torch.nn.functional as F
+import triton
+from vortex.ops.hcs_interface import hcs_depthwise_conv
+
+# evo2_7b HCS layer: hidden_size 4096, hcs_filter_length 7.
+_D: int = 4096
+_FIR_LENGTH: int = 7
+_SEQ_LENS: list[int] = [32, 64, 128, 256, 512, 1024, 2048, 4096]
+
+
+def _conv1d(u: torch.Tensor, weight: torch.Tensor) -> torch.Tensor:
+    """
+    The cuDNN baseline: depthwise causal conv via F.conv1d, trimmed to L.
+
+    Args:
+        u (torch.Tensor): Input tensor of shape (1, D, L).
+        weight (torch.Tensor): Filter tensor of shape (D, 1, fir_length).
+
+    Returns:
+        torch.Tensor: Output tensor of shape (1, D, L).
+    """
+    L = u.shape[-1]
+    return F.conv1d(
+        u,
+        weight,
+        bias=None,
+        stride=1,
+        padding=_FIR_LENGTH - 1,
+        groups=u.shape[1],
+    )[..., :L]
+
+
+def _median_ms(fn: Callable[[], object]) -> float:
+    """
+    Median wall-clock milliseconds of fn via triton.testing.do_bench.
+
+    Wrapped so the float return type is pinned here -- triton ships no type
+    stubs, so do_bench is otherwise inferred as Unknown.
+
+    Args:
+        fn (Callable[[], object]): Function to benchmark.
+
+    Returns:
+        float: Median wall-clock milliseconds.
+    """
+    return triton.testing.do_bench(fn)  # pyright: ignore[reportReturnType]
+
+
+def _bench_one(L: int) -> dict[str, float]:
+    """
+    Benchmark the Triton kernel and the cuDNN baseline at sequence length L.
+
+    Args:
+        L (int): Sequence length.
+
+    Returns:
+        dict[str, float]: Dictionary of results.
+    """
+    torch.manual_seed(0)
+    # torch.randn defaults to float32 -- the dtype the HCS conv runs in.
+    u: torch.Tensor = torch.randn(_D, 1, L, device="cuda")
+    weight: torch.Tensor = torch.randn(_D, 1, _FIR_LENGTH, device="cuda")
+
+    max_diff: float = (hcs_depthwise_conv(u, weight) - _conv1d(u, weight)).abs().max().item()
+    triton_ms: float = _median_ms(lambda: hcs_depthwise_conv(u, weight))
+    cudnn_ms: float = _median_ms(lambda: _conv1d(u, weight))
+
+    return {
+        "seq_len": L,
+        "triton_ms": round(triton_ms, 5),
+        "cudnn_ms": round(cudnn_ms, 5),
+        "speedup": round(cudnn_ms / triton_ms, 3),
+        "max_diff": max_diff,
+    }
+
+
+def main() -> None:
+    """
+    Run the HCS microbench across sequence lengths and write the JSON report.
+    """
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=Path("results/microbench/hcs.json"),
+        help="Path to write the JSON report.",
+    )
+    args = parser.parse_args()
+
+    if not torch.cuda.is_available():
+        raise SystemExit("bench_hcs requires a CUDA device")
+
+    rows: list[dict[str, float]] = []
+    report = {
+        "kernel": "hcs_depthwise_conv",
+        "device": torch.cuda.get_device_name(0),
+        "torch": torch.__version__,
+        "triton": triton.__version__,
+        "platform": platform.platform(),
+        "dtype": "float32",
+        "hidden_size": _D,
+        "fir_length": _FIR_LENGTH,
+        "results": rows,
+    }
+
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    args.output.write_text(json.dumps(report, indent=2) + "\n")
+
+    print(f"{'seq_len':>8} {'triton_ms':>11} {'cudnn_ms':>10} {'speedup':>9} {'max_diff':>10}")
+    for row in rows:
+        print(
+            f"{row['seq_len']:>8} {row['triton_ms']:>11.5f} {row['cudnn_ms']:>10.5f} "
+            f"{row['speedup']:>8.3f}x {row['max_diff']:>10.2e}"
+        )
+    print(f"\nwrote {args.output}")
+
+
+if __name__ == "__main__":
+    main()
