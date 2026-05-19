@@ -52,7 +52,11 @@ git = "*"
 pip = "*"
 
 [pypi-options]
-no-build-isolation = ["flash-attn", "transformer_engine", "transformer_engine_torch"]
+no-build-isolation = [
+  "flash-attn",
+  "transformer_engine",
+  "transformer_engine_torch",
+]
 
 [pypi-dependencies]
 flash-attn = "==2.8.0.post2"
@@ -64,7 +68,7 @@ vortex-kernels = { path = ".", editable = true }
 # (../vortex) by setup_vm.sh. Overrides the `vtx` that `evo2` pulls from
 # PyPI, so edits to ../vortex/vortex/{ops,model}/*.py are live in this env
 # with no reinstall. The fork carries the HC{S,M,L} kernels and the
-# use_triton_* dispatch. See the vortex-kernels-dev skill.
+# use_{hcs,hcm,hcl}_kernel dispatch. See the vortex-kernels-dev skill.
 vtx = { path = "../vortex", editable = true }
 
 [feature.dev.pypi-dependencies]
@@ -87,6 +91,15 @@ torch-tb-profiler = "*"
 
 [environments]
 default = { features = ["dev", "bench"], solve-group = "main" }
+
+# Triton resolves ptxas (its PTX->SASS assembler) from $TRITON_PTXAS_PATH, a
+# copy bundled in the wheel, or a CUDA_HOME-relative path. triton 3.3.1 bundles
+# none, and cuda-nvcc drops ptxas into the env's bin/ without exporting
+# CUDA_HOME -- so without this, every Triton kernel compile fails with
+# "ptxas ... NoneType". $CONDA_PREFIX is the active env prefix, so this
+# resolves correctly under `pixi run` / `pixi shell`.
+[activation.env]
+TRITON_PTXAS_PATH = "$CONDA_PREFIX/bin/ptxas"
 
 [tasks]
 verify = "python scripts/verify_install.py"
