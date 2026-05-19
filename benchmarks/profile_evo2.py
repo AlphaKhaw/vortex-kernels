@@ -66,11 +66,12 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
-import matplotlib.pyplot as plt  # pyright: ignore[reportMissingImports]
+import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
-from evo2 import Evo2  # pyright: ignore[reportMissingImports]
+from evo2 import Evo2
 from torch.profiler import ProfilerActivity, profile, record_function
+from vortex.model.engine import HyenaInferenceEngine
 
 OP_CATEGORIES: dict[str, tuple[str, ...]] = {
     "fft": ("aten::_fft", "aten::fft_", "cufft"),
@@ -689,12 +690,42 @@ def _reclaim_gpu_memory() -> None:
         torch.cuda.empty_cache()
 
 
+def _apply_triton_kernels(model: Any, enabled: set[str]) -> int:
+    """
+    Enable the requested vortex-kernels Triton kernels on a loaded model.
+
+    The vortex fork reads use_{hcs,hcm,hcl}_kernel off each HyenaInferenceEngine
+    instance (normally set from the matching config keys at model-build time).
+    The profiler flips them on the already-loaded model so one checkpoint
+    serves the whole sweep. Only HCS is wired into the engine today; the HCM
+    and HCL flags are set for forward-compatibility.
+
+    Args:
+        model (Any): A loaded Evo2 model.
+        enabled (set[str]): Kernel names to turn on (subset of hcs/hcm/hcl).
+
+    Returns:
+        The number of HyenaInferenceEngine instances touched.
+    """
+    root = getattr(model, "model", model)
+    touched = 0
+    for module in root.modules():
+        engine = getattr(module, "engine", None)
+        if isinstance(engine, HyenaInferenceEngine):
+            engine.use_hcs_kernel = "hcs" in enabled
+            engine.use_hcm_kernel = "hcm" in enabled
+            engine.use_hcl_kernel = "hcl" in enabled
+            touched += 1
+    return touched
+
+
 def run_profile(
     model_name: str,
     seq_len: int,
     output_dir: Path,
     num_runs: int,
     warmup: int,
+    enabled: set[str],
 ) -> RunSummary:
     """
     Profile a single (model, seq_len) pair end-to-end.
@@ -711,6 +742,8 @@ def run_profile(
         output_dir (Path): Output directory; created if missing.
         num_runs (int): Number of timed forward passes.
         warmup (int): Number of untimed warmup forward passes.
+        enabled (set[str]): vortex-kernels Triton kernels to enable on the
+            model (subset of hcs/hcm/hcl); empty for the stock baseline.
 
     Returns:
         Populated RunSummary including every artifact path.
@@ -727,6 +760,9 @@ def run_profile(
     try:
         model = Evo2(model_name)
         print("  model loaded; building input tensor...", flush=True)
+        n_engines = _apply_triton_kernels(model, enabled)
+        if enabled:
+            print(f"  enabled {sorted(enabled)} on {n_engines} engine(s)", flush=True)
         device = torch.device("cuda:0")
         input_ids = torch.randint(1, 5, (1, seq_len), dtype=torch.int, device=device)
 
@@ -870,16 +906,16 @@ def main() -> None:
         default="",
         help=(
             "Comma-separated kernels to enable, e.g. 'hcs' or 'hcs,hcm,hcl'. "
-            "Empty (default) profiles the stock flag-off baseline. Sets the "
-            "VK_HCS / VK_HCM / VK_HCL env vars that the vortex fork's engine.py "
-            "reads to dispatch the Triton kernels."
+            "Empty (default) profiles the stock flag-off baseline. Enables the "
+            "use_{hcs,hcm,hcl}_kernel flags on each loaded model's engine."
         ),
     )
     args = p.parse_args()
 
-    # Translate --triton into the VK_* env vars the vortex fork's engine.py
-    # checks per call. Set before any model forward; empty -> all off -> the
-    # stock baseline, byte-identical to upstream vortex.
+    # Parse --triton into the set of kernels to enable. They are applied to
+    # each model after it loads, via the use_{hcs,hcm,hcl}_kernel engine flags
+    # (see _apply_triton_kernels); empty -> all off -> the stock baseline,
+    # byte-identical to upstream vortex.
     valid_kernels = {"hcs", "hcm", "hcl"}
     enabled = {k.strip() for k in args.triton.split(",") if k.strip()}
     unknown = enabled - valid_kernels
@@ -887,10 +923,8 @@ def main() -> None:
         p.error(
             f"--triton: unknown kernel(s) {sorted(unknown)}; choose from {sorted(valid_kernels)}"
         )
-    for name in sorted(valid_kernels):
-        os.environ[f"VK_{name.upper()}"] = "1" if name in enabled else "0"
     if enabled:
-        print(f"profile_evo2: Triton kernels enabled: {sorted(enabled)}", flush=True)
+        print(f"profile_evo2: Triton kernels requested: {sorted(enabled)}", flush=True)
 
     out_dir = Path(args.output_dir)
     summaries: list[RunSummary] = []
@@ -899,7 +933,7 @@ def main() -> None:
         for seq_len in args.seq_lens:
             try:
                 summaries.append(
-                    run_profile(model_name, seq_len, out_dir, args.num_runs, args.warmup)
+                    run_profile(model_name, seq_len, out_dir, args.num_runs, args.warmup, enabled)
                 )
             except torch.cuda.OutOfMemoryError as exc:
                 # Single-GPU OOM on one (model, seq_len) shouldn't kill the
