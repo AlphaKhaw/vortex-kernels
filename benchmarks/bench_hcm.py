@@ -95,7 +95,7 @@ def main() -> None:
     if not torch.cuda.is_available():
         raise SystemExit("bench_hcm requires a CUDA device")
 
-    rows: list[dict[str, float]] = []
+    rows: list[dict[str, float]] = [_bench_one(L) for L in _SEQ_LENS]
     report = {
         "kernel": "hcm_fft_conv",
         "device": torch.cuda.get_device_name(0),
@@ -107,9 +107,6 @@ def main() -> None:
         "fir_length": _FIR_LENGTH,
         "results": rows,
     }
-
-    for L in _SEQ_LENS:
-        rows.append(_bench_one(L))
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2) + "\n")
