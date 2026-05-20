@@ -63,6 +63,33 @@ def _apply_triton_kernels(model: Any, enabled: set[str]) -> int:
     return touched
 
 
+def _logits_only(out: Any) -> torch.Tensor:
+    """
+    Peel nested tuples from an Evo2/StripedHyena forward return.
+
+    Evo2 wraps StripedHyena's `(logits, inference_params_dict)` return in
+    its own forward signature, producing a nested tuple whose exact shape
+    varies across evo2 package versions; peeling tuples until a tensor is
+    reached keeps this script portable across those versions.
+
+    Args:
+        out (Any): Forward return from a loaded Evo2 model.
+
+    Returns:
+        The logits tensor.
+
+    Raises:
+        TypeError: When peeling does not terminate at a tensor.
+    """
+    while isinstance(out, tuple):
+        out = out[0]
+    if not isinstance(out, torch.Tensor):
+        raise TypeError(
+            f"expected logits tensor at the end of the tuple chain, got {type(out).__name__}"
+        )
+    return out
+
+
 def _compare(stock: torch.Tensor, triton: torch.Tensor) -> dict[str, float]:
     """
     Compute the four correctness metrics between two logits tensors.
@@ -121,13 +148,11 @@ def check_one(
 
     print("  pass 1/2: all kernels OFF (stock baseline)", flush=True)
     _apply_triton_kernels(model, enabled=set())
-    stock_logits, _ = model(input_ids)
-    stock_logits = stock_logits.detach()
+    stock_logits = _logits_only(model(input_ids)).detach()
 
     print(f"  pass 2/2: kernels ON = {sorted(enabled)}", flush=True)
     _apply_triton_kernels(model, enabled=enabled)
-    triton_logits, _ = model(input_ids)
-    triton_logits = triton_logits.detach()
+    triton_logits = _logits_only(model(input_ids)).detach()
     # Surface any kernel error at the forward boundary, not later inside _compare.
     torch.cuda.synchronize()
 
