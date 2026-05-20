@@ -1,0 +1,92 @@
+{
+  "run_meta": {
+    "timestamp": "2026-05-20T14:33:53+00:00",
+    "gpu": "NVIDIA H100 80GB HBM3",
+    "gpu_slug": "h100",
+    "compute_capability": "9.0",
+    "cuda_version": "12.9",
+    "driver_version": "580.126.09",
+    "torch_version": "2.7.1",
+    "triton_version": "3.3.1",
+    "vortex_sha": "a1dcc0f",
+    "vortex_kernels_sha": "aba9d4e",
+    "platform": "Linux-6.8.0-90-generic-x86_64-with-glibc2.35",
+    "config": {
+      "kernel": "hcl_fft_conv + _hcl_compute_filter",
+      "dtype": "float32",
+      "hidden_size": 4096,
+      "state_size": 16,
+      "seq_lens": [
+        2048,
+        8192,
+        32768,
+        65536,
+        98304,
+        131072
+      ]
+    }
+  },
+  "oom_crossover_seq_len": 131072,
+  "results": [
+    {
+      "seq_len": 2048,
+      "stock_ms": 2.01089,
+      "kernel_ms": 0.53317,
+      "speedup": 3.772,
+      "stock_peak_gb": 1.063,
+      "kernel_peak_gb": 0.407,
+      "mem_ratio": 2.61,
+      "max_diff": 0.000579833984375
+    },
+    {
+      "seq_len": 8192,
+      "stock_ms": 7.87654,
+      "kernel_ms": 1.97012,
+      "speedup": 3.998,
+      "stock_peak_gb": 4.251,
+      "kernel_peak_gb": 1.626,
+      "mem_ratio": 2.61,
+      "max_diff": 0.001220703125
+    },
+    {
+      "seq_len": 32768,
+      "stock_ms": 32.69803,
+      "kernel_ms": 9.2322,
+      "speedup": 3.542,
+      "stock_peak_gb": 17.001,
+      "kernel_peak_gb": 6.501,
+      "mem_ratio": 2.62,
+      "max_diff": 0.002685546875
+    },
+    {
+      "seq_len": 65536,
+      "stock_ms": 71.3769,
+      "kernel_ms": 26.72876,
+      "speedup": 2.67,
+      "stock_peak_gb": 34.001,
+      "kernel_peak_gb": 15.001,
+      "mem_ratio": 2.27,
+      "max_diff": 0.00390625
+    },
+    {
+      "seq_len": 98304,
+      "stock_ms": 110.91914,
+      "kernel_ms": 42.37861,
+      "speedup": 2.617,
+      "stock_peak_gb": 51.001,
+      "kernel_peak_gb": 22.501,
+      "mem_ratio": 2.27,
+      "max_diff": 0.0048828125
+    },
+    {
+      "seq_len": 131072,
+      "stock_ms": "OOM",
+      "kernel_ms": 53.19709,
+      "speedup": null,
+      "stock_peak_gb": "OOM",
+      "kernel_peak_gb": 30.001,
+      "mem_ratio": null,
+      "max_diff": null
+    }
+  ]
+}

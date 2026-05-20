@@ -1,0 +1,105 @@
+{
+  "run_meta": {
+    "timestamp": "2026-05-20T14:33:02+00:00",
+    "gpu": "NVIDIA H100 80GB HBM3",
+    "gpu_slug": "h100",
+    "compute_capability": "9.0",
+    "cuda_version": "12.9",
+    "driver_version": "580.126.09",
+    "torch_version": "2.7.1",
+    "triton_version": "3.3.1",
+    "vortex_sha": "a1dcc0f",
+    "vortex_kernels_sha": "aba9d4e",
+    "platform": "Linux-6.8.0-90-generic-x86_64-with-glibc2.35",
+    "config": {
+      "kernel": "hcs_depthwise_conv",
+      "dtype": "float32",
+      "hidden_size": 4096,
+      "fir_length": 7,
+      "seq_lens": [
+        32,
+        64,
+        128,
+        256,
+        512,
+        1024,
+        2048,
+        4096
+      ]
+    }
+  },
+  "results": [
+    {
+      "seq_len": 32,
+      "triton_ms": 0.00999,
+      "cudnn_ms": 0.00905,
+      "speedup": 0.906,
+      "triton_peak_bytes": 269598720,
+      "cudnn_peak_bytes": 269697024,
+      "max_diff": 0.0
+    },
+    {
+      "seq_len": 64,
+      "triton_ms": 0.01022,
+      "cudnn_ms": 0.01045,
+      "speedup": 1.023,
+      "triton_peak_bytes": 270647296,
+      "cudnn_peak_bytes": 270745600,
+      "max_diff": 0.0
+    },
+    {
+      "seq_len": 128,
+      "triton_ms": 0.01069,
+      "cudnn_ms": 0.01355,
+      "speedup": 1.268,
+      "triton_peak_bytes": 272744448,
+      "cudnn_peak_bytes": 272842752,
+      "max_diff": 0.0
+    },
+    {
+      "seq_len": 256,
+      "triton_ms": 0.01198,
+      "cudnn_ms": 0.01818,
+      "speedup": 1.517,
+      "triton_peak_bytes": 276938752,
+      "cudnn_peak_bytes": 277037056,
+      "max_diff": 0.0
+    },
+    {
+      "seq_len": 512,
+      "triton_ms": 0.01842,
+      "cudnn_ms": 0.02994,
+      "speedup": 1.625,
+      "triton_peak_bytes": 285327360,
+      "cudnn_peak_bytes": 285425664,
+      "max_diff": 0.0
+    },
+    {
+      "seq_len": 1024,
+      "triton_ms": 0.02782,
+      "cudnn_ms": 0.05368,
+      "speedup": 1.929,
+      "triton_peak_bytes": 302104576,
+      "cudnn_peak_bytes": 302202880,
+      "max_diff": 0.0
+    },
+    {
+      "seq_len": 2048,
+      "triton_ms": 0.04287,
+      "cudnn_ms": 0.10008,
+      "speedup": 2.334,
+      "triton_peak_bytes": 335659008,
+      "cudnn_peak_bytes": 335757312,
+      "max_diff": 0.0
+    },
+    {
+      "seq_len": 4096,
+      "triton_ms": 0.07283,
+      "cudnn_ms": 0.19301,
+      "speedup": 2.65,
+      "triton_peak_bytes": 402767872,
+      "cudnn_peak_bytes": 402866176,
+      "max_diff": 0.0
+    }
+  ]
+}

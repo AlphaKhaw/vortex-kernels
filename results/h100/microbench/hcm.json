@@ -1,0 +1,65 @@
+{
+  "run_meta": {
+    "timestamp": "2026-05-20T14:33:24+00:00",
+    "gpu": "NVIDIA H100 80GB HBM3",
+    "gpu_slug": "h100",
+    "compute_capability": "9.0",
+    "cuda_version": "12.9",
+    "driver_version": "580.126.09",
+    "torch_version": "2.7.1",
+    "triton_version": "3.3.1",
+    "vortex_sha": "a1dcc0f",
+    "vortex_kernels_sha": "aba9d4e",
+    "platform": "Linux-6.8.0-90-generic-x86_64-with-glibc2.35",
+    "config": {
+      "kernel": "hcm_fft_conv",
+      "dtype": "float32",
+      "hidden_size": 4096,
+      "fir_length": 128,
+      "seq_lens": [
+        2048,
+        8192,
+        32768,
+        65536
+      ]
+    }
+  },
+  "results": [
+    {
+      "seq_len": 2048,
+      "triton_ms": 0.41691,
+      "fftconv_ms": 0.47444,
+      "speedup": 1.138,
+      "triton_peak_bytes": 639778816,
+      "fftconv_peak_bytes": 639778816,
+      "max_diff": 1.1444091796875e-05
+    },
+    {
+      "seq_len": 8192,
+      "triton_ms": 1.58631,
+      "fftconv_ms": 1.78257,
+      "speedup": 1.124,
+      "triton_peak_bytes": 1747075072,
+      "fftconv_peak_bytes": 1747075072,
+      "max_diff": 1.1444091796875e-05
+    },
+    {
+      "seq_len": 32768,
+      "triton_ms": 7.8309,
+      "fftconv_ms": 8.58628,
+      "speedup": 1.096,
+      "triton_peak_bytes": 6176260096,
+      "fftconv_peak_bytes": 6176260096,
+      "max_diff": 1.1444091796875e-05
+    },
+    {
+      "seq_len": 65536,
+      "triton_ms": 23.88935,
+      "fftconv_ms": 25.38865,
+      "speedup": 1.063,
+      "triton_peak_bytes": 14229356544,
+      "fftconv_peak_bytes": 14229356544,
+      "max_diff": 1.1444091796875e-05
+    }
+  ]
+}
