@@ -110,10 +110,24 @@ per-block activations stacked across 32 blocks. Extrapolating from the
 
 L=196608 picked because (a) it's `3 * 2^16`, FFT-friendly for cuFFT, and
 (b) the linear-extrapolation prediction lands just below the 80 GB wall —
-the most informative single probe. L=262144 is included as a guaranteed
-OOM marker so the report explicitly states "this is the wall, not just an
-arbitrary stopping point". If 196608 runs but 262144 OOMs, we have a
-defensible "single-H100 ceiling is between 196k and 262k tokens" claim.
+the most informative single probe. L=262144 is included as a probe but
+empirically trips a *different* wall: cuFFT / cuDNN use int32 strided
+indexing, and at L=262144 the rfft output `(B=1, D=4096, fft_size/2+1)`
+viewed as real has ~2.15 x 10^9 elements, just over 2^31. PyTorch raises
+RuntimeError with `canUse32BitIndexMath` in the message; the profile loop
+catches it and marks the row as `int32-idx`. That wall is upstream
+PyTorch, not the kernel, and applies equally to the stock path.
+
+The takeaway for the article: single-H100 single-token-stream ceilings
+are now **two**, of different natures:
+
+- **Stock-path ceiling**: L=131072 (memory — HCL filter materialisation
+  exceeds the H100's 80 GB).
+- **Kernel-path ceiling**: L<262144 (cuFFT/cuDNN int32 indexing —
+  upstream PyTorch limitation).
+
+The HCL kernel takes the *single-H100* usable context from ~65k tokens
+(stock, no FlashFFTConv) to ~196k+ tokens (kernel), ~3x extension.
 
 ### Expected outcomes per row (the article story)
 
