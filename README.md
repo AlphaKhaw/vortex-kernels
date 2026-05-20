@@ -55,12 +55,31 @@ pixi run check         # lint + typecheck + fast tests
 pixi run profile       # Evo2 profiling
 ```
 
+## Results layout
+
+All measurements land under `results/<gpu_slug>/`. The slug is auto-detected
+from `torch.cuda.get_device_name()` (`rtx-4090`, `h100`, ...) so 4090 and
+H100 artefacts stay in separate trees. Each phase folder carries JSON
+measurements, `plots/`, and a `report.md`. Every emitted JSON wraps its
+measurements in a `run_meta` envelope (timestamp, gpu, cuda/driver/torch/
+triton versions, repo SHAs, config) so re-runs are traceable.
+
+```
+results/
+├── rtx-4090/                  dev box
+│   ├── baseline_profile/      no kernels — flag-off baseline
+│   ├── microbench/            bench_{hcs,hcm,hcl}.json
+│   └── progression/{base,hcs,hcs_hcm,final}/
+└── h100/                      sign-off pod (produced on demand)
+```
+
 ## Workflow
 
-1. **Profile the baseline** — `pixi run profile`; results in `results/baseline_profile/`.
+1. **Profile the baseline** — `pixi run profile`; artefacts in
+   `results/<gpu>/baseline_profile/`.
 2. **Implement a kernel** in the fork, behind its `use_*_kernel` flag.
-3. **Measure the progression** — profile base vs +HCS vs +HCS+HCM vs
-   +HCS+HCM+HCL by toggling flags; artifacts in `results/progression/`.
+3. **Measure the progression** — toggle flags and re-profile; rows land in
+   `results/<gpu>/progression/{base,hcs,hcs_hcm,final}/`.
 4. **Upstream PR** — the fork branch; scope tracked in
    [Zymrael/vortex#76](https://github.com/Zymrael/vortex/issues/76).
 

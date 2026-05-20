@@ -33,8 +33,10 @@ bench = ["matplotlib", "pandas", "torch-tb-profiler"]
 evo2 = ["evo2>=0.5.3", "biopython", "huggingface_hub>=0.24,<0.27"]
 
 [project.urls]
-Homepage = "https://github.com/Zymrael/vortex"
-Issues = "https://github.com/Zymrael/vortex/issues/16"
+Homepage = "https://github.com/AlphaKhaw/vortex-kernels"
+Repository = "https://github.com/AlphaKhaw/vortex-kernels"
+"Upstream vortex" = "https://github.com/Zymrael/vortex"
+"Upstream issue" = "https://github.com/Zymrael/vortex/issues/16"
 
 [tool.setuptools.packages.find]
 include = ["vortex_kernels*"]
