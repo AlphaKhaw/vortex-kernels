@@ -1,67 +1,104 @@
 {
-  "kernel": "hcs_depthwise_conv",
-  "device": "NVIDIA GeForce RTX 4090",
-  "torch": "2.7.1",
-  "triton": "3.3.1",
-  "platform": "Linux-6.17.0-23-generic-x86_64-with-glibc2.39",
-  "dtype": "float32",
-  "hidden_size": 4096,
-  "fir_length": 7,
+  "run_meta": {
+    "timestamp": "2026-05-20T05:23:59+00:00",
+    "gpu": "NVIDIA GeForce RTX 4090",
+    "gpu_slug": "rtx-4090",
+    "compute_capability": "8.9",
+    "cuda_version": "12.9",
+    "driver_version": "580.126.09",
+    "torch_version": "2.7.1",
+    "triton_version": "3.3.1",
+    "vortex_sha": "a1dcc0f",
+    "vortex_kernels_sha": "a6deb6c",
+    "platform": "Linux-6.17.0-23-generic-x86_64-with-glibc2.39",
+    "config": {
+      "kernel": "hcs_depthwise_conv",
+      "dtype": "float32",
+      "hidden_size": 4096,
+      "fir_length": 7,
+      "seq_lens": [
+        32,
+        64,
+        128,
+        256,
+        512,
+        1024,
+        2048,
+        4096
+      ]
+    }
+  },
   "results": [
     {
       "seq_len": 32,
-      "triton_ms": 0.00684,
-      "cudnn_ms": 0.00761,
-      "speedup": 1.114,
+      "triton_ms": 0.00745,
+      "cudnn_ms": 0.00719,
+      "speedup": 0.965,
+      "triton_peak_bytes": 269598720,
+      "cudnn_peak_bytes": 269697024,
       "max_diff": 0.0
     },
     {
       "seq_len": 64,
-      "triton_ms": 0.00901,
-      "cudnn_ms": 0.00945,
-      "speedup": 1.049,
+      "triton_ms": 0.00951,
+      "cudnn_ms": 0.00955,
+      "speedup": 1.004,
+      "triton_peak_bytes": 270647296,
+      "cudnn_peak_bytes": 270745600,
       "max_diff": 0.0
     },
     {
       "seq_len": 128,
-      "triton_ms": 0.01252,
-      "cudnn_ms": 0.01382,
-      "speedup": 1.103,
+      "triton_ms": 0.01272,
+      "cudnn_ms": 0.01364,
+      "speedup": 1.073,
+      "triton_peak_bytes": 272744448,
+      "cudnn_peak_bytes": 272842752,
       "max_diff": 0.0
     },
     {
       "seq_len": 256,
-      "triton_ms": 0.01481,
-      "cudnn_ms": 0.02217,
-      "speedup": 1.497,
+      "triton_ms": 0.01517,
+      "cudnn_ms": 0.02257,
+      "speedup": 1.488,
+      "triton_peak_bytes": 276938752,
+      "cudnn_peak_bytes": 277037056,
       "max_diff": 0.0
     },
     {
       "seq_len": 512,
-      "triton_ms": 0.02438,
-      "cudnn_ms": 0.03883,
-      "speedup": 1.593,
+      "triton_ms": 0.029,
+      "cudnn_ms": 0.03878,
+      "speedup": 1.337,
+      "triton_peak_bytes": 285327360,
+      "cudnn_peak_bytes": 285425664,
       "max_diff": 0.0
     },
     {
       "seq_len": 1024,
-      "triton_ms": 0.05022,
-      "cudnn_ms": 0.06627,
-      "speedup": 1.32,
+      "triton_ms": 0.05225,
+      "cudnn_ms": 0.06585,
+      "speedup": 1.26,
+      "triton_peak_bytes": 302104576,
+      "cudnn_peak_bytes": 302202880,
       "max_diff": 0.0
     },
     {
       "seq_len": 2048,
-      "triton_ms": 0.09066,
-      "cudnn_ms": 0.1172,
-      "speedup": 1.293,
+      "triton_ms": 0.09043,
+      "cudnn_ms": 0.11656,
+      "speedup": 1.289,
+      "triton_peak_bytes": 335659008,
+      "cudnn_peak_bytes": 335757312,
       "max_diff": 0.0
     },
     {
       "seq_len": 4096,
-      "triton_ms": 0.1636,
-      "cudnn_ms": 0.21851,
-      "speedup": 1.336,
+      "triton_ms": 0.16422,
+      "cudnn_ms": 0.21863,
+      "speedup": 1.331,
+      "triton_peak_bytes": 402767872,
+      "cudnn_peak_bytes": 402866176,
       "max_diff": 0.0
     }
   ]

@@ -3,41 +3,43 @@
   "seq_len": 8192,
   "num_runs": 5,
   "warmup": 3,
-  "total_cuda_ms": 22263.21867499992,
-  "forward_ms_mean": 1153.675552399995,
-  "forward_ms_std": 22.876886187002466,
+  "total_cuda_ms": 22221.15813099999,
+  "forward_ms_mean": 1152.4112696000002,
+  "forward_ms_std": 23.187654866583845,
+  "peak_memory_bytes": 18029912064,
+  "kernel_launch_count": 26681,
   "by_category_ms": {
-    "other": 5843.619933999975,
-    "reshape": 73.01756999999931,
-    "elementwise": 1188.6722669999938,
-    "cast_copy": 1673.9264110000058,
-    "conv": 1141.2597500000065,
-    "gemm": 11413.236251999946,
-    "fft": 825.0930699999891,
-    "attention": 104.39342100000098
+    "other": 5828.220933999986,
+    "reshape": 73.35185300000023,
+    "elementwise": 1188.9552270000004,
+    "cast_copy": 1663.3826139999953,
+    "conv": 1131.647669999998,
+    "gemm": 11406.108766000007,
+    "fft": 825.160969000002,
+    "attention": 104.33009800000123
   },
   "by_category_pct": {
-    "other": 26.24786657897747,
-    "reshape": 0.3279740053130461,
-    "elementwise": 5.339175275382763,
-    "cast_copy": 7.5187978676224,
-    "conv": 5.126211832440758,
-    "gemm": 51.264987415392156,
-    "fft": 3.706081685872818,
-    "attention": 0.46890533899856846
+    "other": 26.228250119282627,
+    "reshape": 0.3300991450021209,
+    "elementwise": 5.350554728024409,
+    "cast_copy": 7.485580203308423,
+    "conv": 5.092658372388226,
+    "gemm": 51.329947335587924,
+    "fft": 3.7134021734395906,
+    "attention": 0.4695079229666875
   },
   "by_layer_kind_ms": {
-    "hcl": 2306.531100999993,
-    "hcm": 1491.9486839999893,
-    "hcs": 1208.9069389999959,
-    "attn": 755.3298309999961,
+    "hcl": 2304.57802600001,
+    "hcm": 1489.407750000013,
+    "hcs": 1207.1391989999768,
+    "attn": 755.2643680000028,
     "other": 0.0
   },
   "by_layer_kind_pct": {
-    "hcl": 10.360276897383534,
-    "hcm": 6.70140605354313,
-    "hcs": 5.430063624885992,
-    "attn": 3.3927252030641024,
+    "hcl": 10.37109772773261,
+    "hcm": 6.702655825675397,
+    "hcs": 5.432386520466445,
+    "attn": 3.3988524070055512,
     "other": 0.0
   },
   "per_layer": [
@@ -45,203 +47,203 @@
       "idx": 0,
       "kind": "hcs",
       "class_name": "ParallelGatedConvBlock",
-      "cuda_ms": 114.10642299999913
+      "cuda_ms": 113.85036700000238
     },
     {
       "idx": 1,
       "kind": "hcm",
       "class_name": "ParallelGatedConvBlock",
-      "cuda_ms": 139.41786900000022
+      "cuda_ms": 139.17718899999863
     },
     {
       "idx": 2,
       "kind": "hcl",
       "class_name": "ParallelGatedConvBlock",
-      "cuda_ms": 213.9648160000007
+      "cuda_ms": 213.76644499999477
     },
     {
       "idx": 3,
       "kind": "attn",
       "class_name": "AttentionBlock",
-      "cuda_ms": 122.66297400000242
+      "cuda_ms": 122.59485999999978
     },
     {
       "idx": 4,
       "kind": "hcs",
       "class_name": "ParallelGatedConvBlock",
-      "cuda_ms": 112.51295000000137
+      "cuda_ms": 112.31189600000114
     },
     {
       "idx": 5,
       "kind": "hcm",
       "class_name": "ParallelGatedConvBlock",
-      "cuda_ms": 139.24971500000257
+      "cuda_ms": 139.07495999999887
     },
     {
       "idx": 6,
       "kind": "hcl",
       "class_name": "ParallelGatedConvBlock",
-      "cuda_ms": 214.67515699999817
+      "cuda_ms": 214.48196600000068
     },
     {
       "idx": 7,
       "kind": "hcs",
       "class_name": "ParallelGatedConvBlock",
-      "cuda_ms": 116.38779000000143
+      "cuda_ms": 116.1949879999904
     },
     {
       "idx": 8,
       "kind": "hcm",
       "class_name": "ParallelGatedConvBlock",
-      "cuda_ms": 139.22747599999852
+      "cuda_ms": 139.01025500000418
     },
     {
       "idx": 9,
       "kind": "hcl",
       "class_name": "ParallelGatedConvBlock",
-      "cuda_ms": 219.26320099999907
+      "cuda_ms": 219.2802630000001
     },
     {
       "idx": 10,
       "kind": "attn",
       "class_name": "AttentionBlock",
-      "cuda_ms": 122.65295999999996
+      "cuda_ms": 122.56337500000029
     },
     {
       "idx": 11,
       "kind": "hcs",
       "class_name": "ParallelGatedConvBlock",
-      "cuda_ms": 112.33279699999629
+      "cuda_ms": 112.10563099999662
     },
     {
       "idx": 12,
       "kind": "hcm",
       "class_name": "ParallelGatedConvBlock",
-      "cuda_ms": 139.48210199999966
+      "cuda_ms": 139.2767400000018
     },
     {
       "idx": 13,
       "kind": "hcl",
       "class_name": "ParallelGatedConvBlock",
-      "cuda_ms": 215.19806300000118
+      "cuda_ms": 214.995324000001
     },
     {
       "idx": 14,
       "kind": "hcs",
       "class_name": "ParallelGatedConvBlock",
-      "cuda_ms": 117.66951299999812
+      "cuda_ms": 117.38704299999686
     },
     {
       "idx": 15,
       "kind": "hcm",
       "class_name": "ParallelGatedConvBlock",
-      "cuda_ms": 139.69857200000342
+      "cuda_ms": 139.47570100000675
     },
     {
       "idx": 16,
       "kind": "hcl",
       "class_name": "ParallelGatedConvBlock",
-      "cuda_ms": 215.73172900000122
+      "cuda_ms": 215.4972620000001
     },
     {
       "idx": 17,
       "kind": "attn",
       "class_name": "AttentionBlock",
-      "cuda_ms": 122.78009400000109
+      "cuda_ms": 122.83469100000208
     },
     {
       "idx": 18,
       "kind": "hcs",
       "class_name": "ParallelGatedConvBlock",
-      "cuda_ms": 112.04268299999856
+      "cuda_ms": 111.88339999999863
     },
     {
       "idx": 19,
       "kind": "hcm",
       "class_name": "ParallelGatedConvBlock",
-      "cuda_ms": 146.2289979999948
+      "cuda_ms": 146.00297000000543
     },
     {
       "idx": 20,
       "kind": "hcl",
       "class_name": "ParallelGatedConvBlock",
-      "cuda_ms": 214.11176699999837
+      "cuda_ms": 214.0398340000012
     },
     {
       "idx": 21,
       "kind": "hcs",
       "class_name": "ParallelGatedConvBlock",
-      "cuda_ms": 113.21611500000243
+      "cuda_ms": 113.17135199999949
     },
     {
       "idx": 22,
       "kind": "hcm",
       "class_name": "ParallelGatedConvBlock",
-      "cuda_ms": 139.37285300000127
+      "cuda_ms": 139.16064399999763
     },
     {
       "idx": 23,
       "kind": "hcl",
       "class_name": "ParallelGatedConvBlock",
-      "cuda_ms": 218.59757099999638
+      "cuda_ms": 218.39706700000423
     },
     {
       "idx": 24,
       "kind": "attn",
       "class_name": "AttentionBlock",
-      "cuda_ms": 122.659616999998
+      "cuda_ms": 122.7169339999979
     },
     {
       "idx": 25,
       "kind": "hcs",
       "class_name": "ParallelGatedConvBlock",
-      "cuda_ms": 239.20725000000513
+      "cuda_ms": 239.04344099999022
     },
     {
       "idx": 26,
       "kind": "hcm",
       "class_name": "ParallelGatedConvBlock",
-      "cuda_ms": 293.24096099999747
+      "cuda_ms": 292.6817890000034
     },
     {
       "idx": 27,
       "kind": "hcl",
       "class_name": "ParallelGatedConvBlock",
-      "cuda_ms": 385.7396049999895
+      "cuda_ms": 385.34059100001144
     },
     {
       "idx": 28,
       "kind": "hcs",
       "class_name": "ParallelGatedConvBlock",
-      "cuda_ms": 171.4314179999934
+      "cuda_ms": 171.19108100000116
     },
     {
       "idx": 29,
       "kind": "hcm",
       "class_name": "ParallelGatedConvBlock",
-      "cuda_ms": 216.03013799999152
+      "cuda_ms": 215.54750199999637
     },
     {
       "idx": 30,
       "kind": "hcl",
       "class_name": "ParallelGatedConvBlock",
-      "cuda_ms": 409.24919200000886
+      "cuda_ms": 408.77927399999624
     },
     {
       "idx": 31,
       "kind": "attn",
       "class_name": "AttentionBlock",
-      "cuda_ms": 264.57418599999477
+      "cuda_ms": 264.55450800000284
     }
   ],
-  "unmatched_cuda_ms": 16500.502119999946,
+  "unmatched_cuda_ms": 16464.768787999987,
   "unknown_block_classes": [],
   "artifacts": {
-    "chrome_trace": "results/progression/hcs/trace_evo2_7b_L8192.json",
-    "top_ops": "results/progression/hcs/top_ops_evo2_7b_L8192.txt",
-    "layer_breakdown": "results/progression/hcs/layer_breakdown_evo2_7b_L8192.json",
-    "per_layer_plot": "results/progression/hcs/plots/per_layer_evo2_7b_L8192.png",
-    "layer_kinds_plot": "results/progression/hcs/plots/layer_kinds_evo2_7b_L8192.png",
-    "op_categories_plot": "results/progression/hcs/plots/op_categories_evo2_7b_L8192.png"
+    "chrome_trace": "/home/alpha/Projects/vortex-kernels/results/rtx-4090/progression/hcs/trace_evo2_7b_L8192.json",
+    "top_ops": "/home/alpha/Projects/vortex-kernels/results/rtx-4090/progression/hcs/top_ops_evo2_7b_L8192.txt",
+    "layer_breakdown": "/home/alpha/Projects/vortex-kernels/results/rtx-4090/progression/hcs/layer_breakdown_evo2_7b_L8192.json",
+    "per_layer_plot": "/home/alpha/Projects/vortex-kernels/results/rtx-4090/progression/hcs/plots/per_layer_evo2_7b_L8192.png",
+    "layer_kinds_plot": "/home/alpha/Projects/vortex-kernels/results/rtx-4090/progression/hcs/plots/layer_kinds_evo2_7b_L8192.png",
+    "op_categories_plot": "/home/alpha/Projects/vortex-kernels/results/rtx-4090/progression/hcs/plots/op_categories_evo2_7b_L8192.png"
   }
 }
