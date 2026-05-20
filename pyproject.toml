@@ -49,10 +49,6 @@ line-length = 100
 indent-width = 4
 target-version = "py312"
 
-# reference/ holds verbatim engine.py / model.py correctness oracles — kept
-# diffable against vortex, not ours to reformat. force-exclude also covers
-# pre-commit, which passes individually-staged files to ruff.
-extend-exclude = ["vortex_kernels/reference"]
 force-exclude = true
 
 [tool.ruff.lint]
@@ -87,9 +83,7 @@ docstring-code-line-length = "dynamic"
 typeCheckingMode = "standard"
 pythonVersion = "3.12"
 include = ["vortex_kernels", "tests", "benchmarks", "scripts"]
-# reference/ holds verbatim upstream oracles — type-checking them just
-# surfaces noise from upstream's own gaps. Excluded like ruff (above).
-exclude = ["**/__pycache__", ".venv", ".pixi", "vortex_kernels/reference"]
+exclude = ["**/__pycache__", ".venv", ".pixi"]
 
 # Selective rule elevation — adjust to taste. basedpyright defaults many checks
 # to "hint" (greyed text in IDE); elevate to "warning" for yellow squiggles that

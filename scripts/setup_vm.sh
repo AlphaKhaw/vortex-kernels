@@ -3,8 +3,6 @@
 # Target: Ubuntu 22.04, NVIDIA driver supporting CUDA 12.9+, A100/H100 GPU.
 #
 # Usage:  bash scripts/setup_vm.sh
-#
-# For the conda/micromamba fallback, see scripts/setup_vm_conda.sh.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -55,8 +53,5 @@ Setup complete. Use pixi for everything:
 
 The vortex fork is editable-installed: edits to ../vortex/vortex/*.py are
 live in this env. Verify:  python -c "import vortex; print(vortex.__file__)"
-
-Fallback (no pixi, conda/micromamba instead):
-    bash scripts/setup_vm_conda.sh
 ================================================================
 EOF
