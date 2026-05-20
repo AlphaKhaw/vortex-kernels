@@ -990,19 +990,29 @@ def main() -> None:
                 skipped.append((model_name, seq_len, "OOM"))
                 _reclaim_gpu_memory()
             except RuntimeError as exc:
-                # torch 2.x sometimes wraps OOM in a plain RuntimeError
-                # ("CUDA error: out of memory"). Detect by message, handle
-                # like OutOfMemoryError. Re-raise anything else — it's a
-                # real bug we want to see.
-                if "out of memory" in str(exc).lower():
-                    print(
-                        f"  SKIPPED: {model_name} @ L={seq_len} — CUDA OOM: {_oom_summary(exc)}",
-                        flush=True,
-                    )
-                    skipped.append((model_name, seq_len, "OOM"))
-                    _reclaim_gpu_memory()
-                    continue
-                raise
+                # Recoverable RuntimeErrors at one (model, seq_len) shouldn't
+                # kill the whole sweep — log, reclaim, continue. Two classes:
+                #   - "out of memory": torch 2.x sometimes wraps OOM here
+                #     instead of raising CUDA OutOfMemoryError.
+                #   - "canUse32BitIndexMath": at very long L, cuFFT / cuDNN
+                #     refuse tensors whose strided element count exceeds 2^31
+                #     (e.g. evo2_7b HCM at L=262144). Not our bug, not OOM.
+                msg = str(exc)
+                lower = msg.lower()
+                if "out of memory" in lower:
+                    reason = "OOM"
+                    detail = _oom_summary(exc)
+                elif "canuse32bitindexmath" in lower:
+                    reason = "int32-idx"
+                    detail = "cuFFT/cuDNN int32 indexing limit (>2^31 elements)"
+                else:
+                    raise
+                print(
+                    f"  SKIPPED: {model_name} @ L={seq_len} — {reason}: {detail}",
+                    flush=True,
+                )
+                skipped.append((model_name, seq_len, reason))
+                _reclaim_gpu_memory()
 
     if not summaries:
         print("\nAll runs failed. No aggregates to write.", flush=True)
