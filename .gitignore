@@ -223,5 +223,9 @@ results/**/trace_*.json
 # public. Sync the vortex-kernels-dev skill between dev machines manually.
 .claude/
 
-# Private blog drafts — kept local until published.
-docs/BLOG_OUTLINE.md
+# Docs — drafts, walkthroughs, sign-off notes — all local-only. The
+# README is the single source of truth in-repo.
+docs/
+
+# Stray debug logs from one-off profiler runs.
+activations_debug.log
