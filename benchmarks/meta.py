@@ -1,10 +1,9 @@
 """
-Shared run-metadata helpers for every benchmark and profiler in this repo.
+Shared run-metadata helpers for the benchmarks in this repo.
 
-Every emitted result JSON wraps its measurements inside a ``run_meta``
-envelope so downstream comparison scripts can join across runs (4090 vs H100,
-historical vs current commit, configs A vs B). See ``docs/BENCHMARKING.md``
-for the full schema.
+Every emitted JSON wraps its measurements inside a `run_meta` envelope so
+that 4090 and H100 results stay traceable to the (gpu, software stack, repo
+SHA) tuple that produced them.
 """
 
 import platform
@@ -15,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 import torch
+import triton
 
 REPO_ROOT: Path = Path(__file__).resolve().parent.parent
 
@@ -29,16 +29,11 @@ _GPU_NAME_PATTERNS: tuple[tuple[str, str], ...] = (
 
 def gpu_slug() -> str:
     """
-    Returns a filesystem-safe short tag for the active CUDA device.
-
-    Picks one of the canonical tags (``rtx-4090``, ``h100``, ``a100``,
-    ``rtx-3090``, ``l40``) when the device name matches, otherwise sanitises
-    the full device name. Used as the default top-level ``results/``
-    subdirectory so 4090 and H100 artefacts never collide.
+    Return a short filesystem-safe tag for the active CUDA device.
 
     Returns:
-        str: A short, filesystem-safe identifier for the active GPU, or
-        ``"cpu"`` when no CUDA device is available.
+        str: A canonical short tag (e.g. `rtx-4090`, `h100`), a sanitised
+        device name as fallback, or `cpu` when no CUDA device is visible.
     """
     if not torch.cuda.is_available():
         return "cpu"
@@ -52,17 +47,10 @@ def gpu_slug() -> str:
 
 def _git_sha(path: Path) -> str | None:
     """
-    Returns the short HEAD SHA at ``path``, or ``None`` when not a git repo.
-
-    Args:
-        path (Path): Filesystem path to check.
-
-    Returns:
-        str | None: The short SHA, or ``None`` if ``path`` is not a git
-        working tree or git is unavailable.
+    Return the short HEAD SHA at path, or None when not a git repo.
     """
     try:
-        out: subprocess.CompletedProcess[str] = subprocess.run(
+        out = subprocess.run(
             ["git", "-C", str(path), "rev-parse", "--short", "HEAD"],
             check=True,
             capture_output=True,
@@ -76,13 +64,10 @@ def _git_sha(path: Path) -> str | None:
 
 def _driver_version() -> str | None:
     """
-    Returns the NVIDIA driver version via nvidia-smi, or ``None`` if unavailable.
-
-    Returns:
-        str | None: The driver version, or ``None`` if unavailable.
+    Return the NVIDIA driver version from nvidia-smi, or None if unavailable.
     """
     try:
-        out: subprocess.CompletedProcess[str] = subprocess.run(
+        out = subprocess.run(
             ["nvidia-smi", "--query-gpu=driver_version", "--format=csv,noheader"],
             check=True,
             capture_output=True,
@@ -95,31 +80,14 @@ def _driver_version() -> str | None:
     return lines[0] if lines and lines[0] else None
 
 
-def _triton_version() -> str | None:
-    """
-    Returns ``triton.__version__`` if importable, else ``None``.
-    """
-    try:
-        import triton  # pyright: ignore[reportMissingImports]
-    except ImportError:
-        return None
-    version: str = triton.__version__
-    return version
-
-
 def run_meta(config: dict[str, Any] | None = None) -> dict[str, Any]:
     """
-    Returns the canonical run-metadata envelope.
-
-    The envelope captures the (gpu, software-stack, repo-SHA, config) tuple
-    that uniquely identifies a measurement. Every benchmark stores this
-    alongside its results so that re-runs are traceable and 4090 vs H100
-    comparisons are unambiguous.
+    Build the canonical run-metadata envelope.
 
     Args:
-        config (dict[str, Any] | None): Run-specific configuration (model,
-                                        seq_len, kernel flags, etc.) merged into the
-                                        envelope under ``config``.
+        config (dict[str, Any] | None): Run-specific configuration merged into
+            the envelope under the `config` key.
+
     Returns:
         dict[str, Any]: Envelope ready to serialise as JSON.
     """
@@ -137,7 +105,7 @@ def run_meta(config: dict[str, Any] | None = None) -> dict[str, Any]:
         "cuda_version": torch.version.cuda,
         "driver_version": _driver_version(),
         "torch_version": torch.__version__,
-        "triton_version": _triton_version(),
+        "triton_version": triton.__version__,
         "vortex_sha": _git_sha(vortex_root) if vortex_root.exists() else None,
         "vortex_kernels_sha": _git_sha(REPO_ROOT),
         "platform": platform.platform(),
@@ -147,6 +115,6 @@ def run_meta(config: dict[str, Any] | None = None) -> dict[str, Any]:
 
 def default_results_root() -> Path:
     """
-    Returns the per-GPU results root (``results/<gpu_slug>/``).
+    Return the per-GPU results root (results/<gpu_slug>/).
     """
     return REPO_ROOT / "results" / gpu_slug()

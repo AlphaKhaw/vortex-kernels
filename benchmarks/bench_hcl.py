@@ -46,7 +46,7 @@ def _median_ms(fn: Callable[[], object]) -> float:
     Returns:
         float: Median wall-clock milliseconds.
     """
-    return triton.testing.do_bench(fn)  # pyright: ignore[reportReturnType]
+    return triton.testing.do_bench(fn)
 
 
 def _peak_gb(fn: Callable[[], object]) -> float:

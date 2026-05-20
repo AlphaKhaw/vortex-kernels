@@ -1,7 +1,3 @@
-# pyright: reportUnusedFunction=none
-# conftest.py fixtures and hooks are invoked by pytest's registry, not by name
-# references in source — basedpyright can't see through it.
-
 import pytest
 import torch
 

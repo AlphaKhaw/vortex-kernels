@@ -26,7 +26,7 @@ def _check_torch() -> str | None:
     props = torch.cuda.get_device_properties(0)
     print(f"  GPU:            {torch.cuda.get_device_name(0)}")
     print(f"  VRAM:           {props.total_memory / 1e9:.1f} GB")
-    print(f"  CUDA ver:       {torch.version.cuda}")  # pyright: ignore[reportAttributeAccessIssue]
+    print(f"  CUDA ver:       {torch.version.cuda}")
     return None
 
 
@@ -38,7 +38,7 @@ def _check_triton() -> str | None:
         None on success, or an error message describing the failure.
     """
     try:
-        import triton  # pyright: ignore[reportMissingImports]
+        import triton
     except ImportError as e:
         return f"triton import failed: {e}"
     print(f"triton:           {triton.__version__}")
@@ -69,7 +69,7 @@ def _check_evo2() -> str | None:
         None on success, or an error message describing the failure.
     """
     try:
-        import evo2  # pyright: ignore[reportMissingImports]  # noqa: F401
+        import evo2  # noqa: F401
     except ImportError as e:
         return f"evo2 import failed: {e}"
     print("evo2:             imported")
@@ -96,7 +96,7 @@ def _check_flashfftconv_optional() -> None:
     Prints whether FlashFFTConv is available; never fails.
     """
     try:
-        import flashfftconv  # pyright: ignore[reportMissingImports]  # noqa: F401
+        import flashfftconv  # noqa: F401
     except ImportError:
         print("flashfftconv:     NOT available (Tier-2 bench will skip)")
         return
@@ -108,7 +108,7 @@ def _check_transformer_engine_optional() -> None:
     Prints whether Transformer Engine is available; never fails.
     """
     try:
-        import transformer_engine  # pyright: ignore[reportMissingImports]  # noqa: F401
+        import transformer_engine  # noqa: F401
     except ImportError as e:
         print(f"transformer_engine: NOT available — {e}")
         print("  (only required for evo2_40b / evo2_20b / evo2_1b — 7B_base works without)")

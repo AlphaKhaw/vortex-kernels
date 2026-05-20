@@ -33,16 +33,13 @@ def _median_ms(fn: Callable[[], object]) -> float:
     """
     Median wall-clock milliseconds of fn via triton.testing.do_bench.
 
-    Wrapped so the float return type is pinned here -- triton ships no type
-    stubs, so do_bench is otherwise inferred as Unknown.
-
     Args:
         fn (Callable[[], object]): Function to benchmark.
 
     Returns:
         float: Median wall-clock milliseconds.
     """
-    return triton.testing.do_bench(fn)  # pyright: ignore[reportReturnType]
+    return triton.testing.do_bench(fn)
 
 
 def _bench_one(L: int) -> dict[str, float | int]:
@@ -53,8 +50,7 @@ def _bench_one(L: int) -> dict[str, float | int]:
         L (int): Sequence length.
 
     Returns:
-        dict[str, float | int]: One row of timings and peak-memory counters
-        for the (fused, stock) pair at ``L``.
+        dict[str, float | int]: Timings and peak-memory counters for one L.
     """
     torch.manual_seed(0)
     # torch.randn defaults to float32 -- the dtype the HCM FFT-conv runs in.
