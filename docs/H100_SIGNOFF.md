@@ -51,10 +51,14 @@ pixi run python -m benchmarks.bench_hcs           # microbenches
 pixi run python -m benchmarks.bench_hcm
 pixi run python -m benchmarks.bench_hcl
 
-pixi run profile --triton ""                      # progression matrix
-pixi run profile --triton hcs
-pixi run profile --triton hcs,hcm
-pixi run profile --triton hcs,hcm,hcl
+# Progression matrix — push to L=131072 on every config.
+# OOMs are caught gracefully per (model, seq_len) and the sweep continues;
+# rows that OOM are recorded as SKIPPED rather than aborting.
+SEQ_LENS="8192 32768 65536 131072"
+pixi run profile --seq-lens $SEQ_LENS                          # base
+pixi run profile --triton hcs --seq-lens $SEQ_LENS             # +HCS
+pixi run profile --triton hcs,hcm --seq-lens $SEQ_LENS         # +HCS+HCM
+pixi run profile --triton hcs,hcm,hcl --seq-lens $SEQ_LENS     # final
 ```
 
 Microbenches auto-route to `results/h100/microbench/`. The profiler routes
@@ -62,6 +66,25 @@ to `results/h100/baseline_profile/` (when `--triton` is empty) or
 `results/h100/progression/<flagset>/` (`base`, `hcs`, `hcs_hcm`, `final`).
 
 `@triton.autotune`'s first compile per shape is slow — warmup absorbs it.
+
+### Expected outcomes per row (the article story)
+
+| Config | L=8192 | L=32k | L=65k | L=131k |
+|---|---|---|---|---|
+| base | runs | runs | likely runs (~65 GB) | **OOM** (32 GiB filter + model > 80 GB) |
+| +HCS | same as base | same | same | same OOM |
+| +HCS+HCM | same as base | same | same | same OOM |
+| **final** | runs | runs | runs | **runs (the unlock)** |
+
+The base/+HCS/+HCS+HCM OOMs at L=131k are the *desired* result: they show
+the stock filter materialisation is what walls inference, and the HCL kernel
+is what removes the wall. Both at the microbench level (already captured in
+`bench_hcl`) and at the full-model level (this sweep).
+
+L=262144 is intentionally skipped: even with the HCL kernel removing the
+filter materialisation, per-block activation memory at D=4096, 32 blocks,
+BF16 reaches ~70 GB on its own, which plus weights exceeds the H100's
+80 GB. Guaranteed OOM; the L=131k row is the meaningful ceiling.
 
 ## Commit + tear-down
 
