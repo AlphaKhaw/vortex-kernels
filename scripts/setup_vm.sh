@@ -21,15 +21,21 @@ echo "== 2. Clone the vortex fork as a sibling dir (../vortex) =="
 # becomes the upstream PR. Prerequisite: fork Zymrael/vortex on GitHub once
 # (`gh repo fork Zymrael/vortex --fork-name vortex`, or the web UI).
 VORTEX_FORK="${VORTEX_FORK:-git@github.com:AlphaKhaw/vortex.git}"
+VORTEX_BRANCH="${VORTEX_BRANCH:-triton-hc-kernels}"
 VORTEX_DIR="$(dirname "$REPO_ROOT")/vortex"
 if [ ! -d "$VORTEX_DIR" ]; then
-    git clone "$VORTEX_FORK" "$VORTEX_DIR" || {
-        echo "ERROR: could not clone $VORTEX_FORK"
-        echo "Fork Zymrael/vortex on GitHub first, or rerun with VORTEX_FORK=<url>."
+    git clone --branch "$VORTEX_BRANCH" "$VORTEX_FORK" "$VORTEX_DIR" || {
+        echo "ERROR: could not clone $VORTEX_FORK (branch $VORTEX_BRANCH)"
+        echo "Fork Zymrael/vortex on GitHub first, push the $VORTEX_BRANCH branch,"
+        echo "or rerun with VORTEX_FORK=<url> VORTEX_BRANCH=<name>."
         exit 1
     }
     git -C "$VORTEX_DIR" remote add upstream https://github.com/Zymrael/vortex.git
-    git -C "$VORTEX_DIR" checkout -b triton-hc-kernels
+else
+    # Repo already present — make sure we're on the remote-tracking branch,
+    # not a stale local one created by a previous run.
+    git -C "$VORTEX_DIR" fetch origin "$VORTEX_BRANCH"
+    git -C "$VORTEX_DIR" checkout "$VORTEX_BRANCH"
 fi
 echo "   vortex: $VORTEX_DIR  (branch $(git -C "$VORTEX_DIR" branch --show-current))"
 
