@@ -941,9 +941,14 @@ def main() -> None:
     if args.output_dir is not None:
         out_dir = Path(args.output_dir)
     elif enabled:
-        # Progression run: name the subfolder after the enabled-flag set, with
-        # "final" reserved for the all-three combination.
-        flagset = "final" if enabled == valid_kernels else "_".join(sorted(enabled))
+        # Progression run: name the subfolder by the enabled flags in the
+        # canonical hcs/hcm/hcl order. "final" is the all-three combination.
+        canonical_order = ["hcs", "hcm", "hcl"]
+        flagset = (
+            "final"
+            if enabled == valid_kernels
+            else "_".join(k for k in canonical_order if k in enabled)
+        )
         out_dir = default_results_root() / "progression" / flagset
     else:
         out_dir = default_results_root() / "baseline_profile"
