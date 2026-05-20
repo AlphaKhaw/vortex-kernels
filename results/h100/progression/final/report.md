@@ -153,4 +153,3 @@ Profiled 4 run(s). CUDA times are summed across runs.
 - `layer_kinds_plot`: /root/vortex-kernels/results/h100/progression/final/plots/layer_kinds_evo2_7b_L131072.png
 - `op_categories_plot`: /root/vortex-kernels/results/h100/progression/final/plots/op_categories_evo2_7b_L131072.png
 - `summary`: /root/vortex-kernels/results/h100/progression/final/summary_evo2_7b_L131072.json
-
