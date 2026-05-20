@@ -117,5 +117,5 @@ check = { depends-on = ["lint", "typecheck", "test"] }
 # The task is a bare entry point. pixi run TASK ARGS appends ARGS to the
 # task's cmd, so hardcoding --models/--seq-lens here would duplicate them
 # when the user overrides. profile_evo2.py's argparse defaults already
-# cover the no-arg case (evo2_7b_base, seq_lens 8192 32768).
-profile = "python -u benchmarks/profile_evo2.py"
+# cover the no-arg case (evo2_7b, seq_lens 8192 32768).
+profile = "python -u -m benchmarks.profile_evo2"

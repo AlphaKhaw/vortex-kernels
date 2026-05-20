@@ -30,29 +30,20 @@ Aggregate artifacts under --output-dir:
     report.md
 
 Usage:
-    # Default — evo2_7b_base over the canonical seq_len sweep:
+    # Default — evo2_7b over the canonical seq_len sweep:
     pixi run profile
 
     # Explicit sweep with custom seq_lens and run count:
-    pixi run profile --models evo2_7b --seq-lens 2048 8192 32768 --num-runs 5
-
-    # Multi-model panel — runs the Cartesian product of models x seq_lens:
-    pixi run profile --models evo2_7b evo2_7b_base --seq-lens 8192 32768
+    pixi run profile --models evo2_7b --seq-lens 8192 32768 65536 --num-runs 5
 
     # Diagnostic: dump first non-attn block's attribute tree (useful when the
     # classifier silently returns a single kind for every hyena block):
     VK_DUMP_BLOCKS=1 pixi run profile --seq-lens 2048 --num-runs 1 --warmup 0
 
-    # uv equivalent (sync extras first so matplotlib + evo2 are installed):
-    uv sync --extra bench --extra evo2
-    uv run python -u benchmarks/profile_evo2.py --models evo2_7b_base
-
 Hardware requirement:
-    Hopper (H100) or newer. Both evo2_7b and evo2_7b_base default configs
-    wrap Linear projections in te.fp8_autocast(enabled=True), requiring
-    compute capability ≥8.9. This script imports evo2 and matplotlib at
-    module load — not inspectable on hosts without them installed, and
-    there is no code-side fallback to Ampere.
+    Compute capability >= 8.9. evo2_7b's default config wraps Linear
+    projections in te.fp8_autocast(enabled=True). RTX 4090 (8.9) and H100
+    (9.0) both satisfy this; pre-Ada GPUs do not.
 """
 
 import argparse
@@ -163,7 +154,7 @@ class RunSummary:
     Everything we know after profiling one (model, seq_len) pair.
 
     Attributes:
-        model (str): Evo2 model ID (e.g., "evo2_7b_base").
+        model (str): Evo2 model ID (e.g., "evo2_7b").
         seq_len (int): Input sequence length in tokens.
         num_runs (int): Number of timed forward passes.
         warmup (int): Number of untimed forward passes before profiling.
@@ -741,7 +732,7 @@ def run_profile(
     even on mid-run failure.
 
     Args:
-        model_name (str): Evo2 model ID (e.g., "evo2_7b_base").
+        model_name (str): Evo2 model ID (e.g., "evo2_7b").
         seq_len (int): Input sequence length in tokens.
         output_dir (Path): Output directory; created if missing.
         num_runs (int): Number of timed forward passes.
@@ -903,13 +894,11 @@ def main() -> None:
     p.add_argument(
         "--models",
         nargs="+",
-        default=["evo2_7b_base"],
+        default=["evo2_7b"],
         help=(
-            "One or more Evo2 model IDs to sweep. evo2_7b_base is the default; "
-            "evo2_7b is the long-context variant. Both default configs wrap "
-            "Linear projections in te.fp8_autocast(enabled=True), which asserts "
-            "on compute capability <8.9 — so the stock script requires H100 or "
-            "newer. Running on A100 needs a FP8 downgrade patch not shipped here."
+            "One or more Evo2 model IDs to sweep. evo2_7b is the default. "
+            "The default config wraps Linear projections in "
+            "te.fp8_autocast(enabled=True), requiring compute capability >=8.9."
         ),
     )
     p.add_argument("--seq-lens", nargs="+", type=int, default=[8192, 32768])

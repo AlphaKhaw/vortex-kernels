@@ -47,9 +47,9 @@ tmux new -s signoff
 
 pixi run test-gpu                                 # correctness
 
-pixi run python benchmarks/bench_hcs.py           # microbenches
-pixi run python benchmarks/bench_hcm.py
-pixi run python benchmarks/bench_hcl.py
+pixi run python -m benchmarks.bench_hcs           # microbenches
+pixi run python -m benchmarks.bench_hcm
+pixi run python -m benchmarks.bench_hcl
 
 pixi run profile --triton ""                      # progression matrix
 pixi run profile --triton hcs
