@@ -81,8 +81,10 @@ def _collect(gpu_dir: Path) -> list[Row]:
         ("base", gpu_dir / "baseline_profile" / "combined_summary.json"),
         ("base", gpu_dir / "progression" / "base" / "combined_summary.json"),
     ]
-    for cfg in ("hcs", "hcs_hcm", "final"):
-        sources.append((cfg, gpu_dir / "progression" / cfg / "combined_summary.json"))
+    sources.extend(
+        (cfg, gpu_dir / "progression" / cfg / "combined_summary.json")
+        for cfg in ("hcs", "hcs_hcm", "final")
+    )
 
     seen: set[tuple[str, str, int]] = set()
     for cfg, path in sources:

@@ -53,7 +53,6 @@ import os
 import statistics
 from collections import defaultdict
 from collections.abc import Callable
-from pydantic import BaseModel, Field
 from pathlib import Path
 from typing import Any
 
@@ -61,6 +60,7 @@ import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 from evo2 import Evo2
+from pydantic import BaseModel, Field
 from torch.profiler import ProfilerActivity, profile, record_function
 from vortex.model.engine import HyenaInferenceEngine
 
@@ -818,9 +818,7 @@ def run_profile(
         )
 
         layer_breakdown_path = output_dir / f"layer_breakdown_{model_name}_L{seq_len}.json"
-        layer_breakdown_path.write_text(
-            json.dumps([info.model_dump() for info in infos], indent=2)
-        )
+        layer_breakdown_path.write_text(json.dumps([info.model_dump() for info in infos], indent=2))
 
         forward_ms_mean = statistics.fmean(per_run_ms) if per_run_ms else 0.0
         forward_ms_std = statistics.stdev(per_run_ms) if len(per_run_ms) > 1 else 0.0
