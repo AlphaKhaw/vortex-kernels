@@ -51,14 +51,18 @@ pixi run python -m benchmarks.bench_hcs           # microbenches
 pixi run python -m benchmarks.bench_hcm
 pixi run python -m benchmarks.bench_hcl
 
-# Progression matrix — push to L=131072 on every config.
+# Progression matrix.
 # OOMs are caught gracefully per (model, seq_len) and the sweep continues;
-# rows that OOM are recorded as SKIPPED rather than aborting.
-SEQ_LENS="8192 32768 65536 131072"
-pixi run profile --seq-lens $SEQ_LENS                          # base
-pixi run profile --triton hcs --seq-lens $SEQ_LENS             # +HCS
-pixi run profile --triton hcs,hcm --seq-lens $SEQ_LENS         # +HCS+HCM
-pixi run profile --triton hcs,hcm,hcl --seq-lens $SEQ_LENS     # final
+# rows that OOM are recorded as SKIPPED rather than aborting. base, +HCS,
+# and +HCS+HCM all OOM in HCL's compute_filter at L=131k, so stop them at
+# L=65k. Only the final config exercises the higher seq_lens.
+SHORT_SEQ_LENS="8192 32768 65536"
+LONG_SEQ_LENS="8192 32768 65536 131072 196608 262144"
+
+pixi run profile --seq-lens $SHORT_SEQ_LENS                       # base
+pixi run profile --triton hcs --seq-lens $SHORT_SEQ_LENS          # +HCS
+pixi run profile --triton hcs,hcm --seq-lens $SHORT_SEQ_LENS      # +HCS+HCM
+pixi run profile --triton hcs,hcm,hcl --seq-lens $LONG_SEQ_LENS   # final (push past 131k)
 ```
 
 Microbenches auto-route to `results/h100/microbench/`. The profiler routes
@@ -67,24 +71,65 @@ to `results/h100/baseline_profile/` (when `--triton` is empty) or
 
 `@triton.autotune`'s first compile per shape is slow — warmup absorbs it.
 
+### Why these seq_lens — memory-budget justification
+
+The HCL `compute_filter` materializes a `(D=4096, state_size=16, L)` fp32
+tensor. That sets a hard ceiling on the stock path: filter alone is `L * 2 ^
+18` bytes, growing linearly.
+
+| L | Filter alone | Stock peak (4090 model-level) | Stock peak (4090 microbench) | Status on H100 80 GB |
+|---|---:|---:|---:|---|
+| 8 192 | 1 GiB | 18.0 GB | 4.3 GB | runs |
+| 32 768 | 4 GiB | 32.6 GB | 17.0 GB | runs |
+| 65 536 | 8 GiB | OOM on 4090 | 34.0 GB | **last L the stock path fits** |
+| 131 072 | 16 GiB | n/a | OOM in microbench (>80 GB needed) | **stock OOMs** (the unlock point) |
+
+Reason for stopping base / +HCS / +HCS+HCM at L=65k: every one of them runs
+through the same stock `compute_filter` (the HCL flag is what diverts to
+the tiled kernel). At L=131k the filter materialisation alone needs 16 GiB
+on top of the rest of the working set, which the microbench already proves
+OOMs at 80 GB. Running them at L=131k would burn ~5 minutes per config on
+guaranteed-OOM rows that add no information beyond "stock OOMs at 131k",
+which the microbench has already proven.
+
+### Why push final past 131k
+
+The HCL kernel sidesteps the filter materialisation entirely (tiles over
+L), so the final config's ceiling is set by the *next* O(L) cost — the
+per-block activations stacked across 32 blocks. Extrapolating from the
+4090 final-config measurements (which captured `peak_memory_bytes`):
+
+| L | final peak (4090) | linear extrapolation to H100 model | headroom on 80 GB |
+|---|---:|---:|---:|
+| 8 192  | 15.3 GB | ~15 GB | 65 GB |
+| 32 768 | 22.7 GB | ~23 GB | 57 GB |
+| 65 536 | 32.1 GB | ~32 GB | 48 GB |
+| 131 072 | — | ~50 GB (predicted) | ~30 GB |
+| 196 608 | — | ~70 GB (predicted) | ~10 GB — **on the edge** |
+| 262 144 | — | ~110 GB (predicted) | **OOM** |
+
+L=196608 picked because (a) it's `3 * 2^16`, FFT-friendly for cuFFT, and
+(b) the linear-extrapolation prediction lands just below the 80 GB wall —
+the most informative single probe. L=262144 is included as a guaranteed
+OOM marker so the report explicitly states "this is the wall, not just an
+arbitrary stopping point". If 196608 runs but 262144 OOMs, we have a
+defensible "single-H100 ceiling is between 196k and 262k tokens" claim.
+
 ### Expected outcomes per row (the article story)
 
-| Config | L=8192 | L=32k | L=65k | L=131k |
-|---|---|---|---|---|
-| base | runs | runs | likely runs (~65 GB) | **OOM** (32 GiB filter + model > 80 GB) |
-| +HCS | same as base | same | same | same OOM |
-| +HCS+HCM | same as base | same | same | same OOM |
-| **final** | runs | runs | runs | **runs (the unlock)** |
+| Config | L=8192 | L=32k | L=65k | L=131k | L=196k | L=262k |
+|---|---|---|---|---|---|---|
+| base | runs | runs | runs | (not run) | (not run) | (not run) |
+| +HCS | runs | runs | runs | (not run) | (not run) | (not run) |
+| +HCS+HCM | runs | runs | runs | (not run) | (not run) | (not run) |
+| **final** | runs | runs | runs | **runs (the unlock)** | **probe — most likely runs** | **probe — most likely OOM** |
 
-The base/+HCS/+HCS+HCM OOMs at L=131k are the *desired* result: they show
-the stock filter materialisation is what walls inference, and the HCL kernel
-is what removes the wall. Both at the microbench level (already captured in
-`bench_hcl`) and at the full-model level (this sweep).
-
-L=262144 is intentionally skipped: even with the HCL kernel removing the
-filter materialisation, per-block activation memory at D=4096, 32 blocks,
-BF16 reaches ~70 GB on its own, which plus weights exceeds the H100's
-80 GB. Guaranteed OOM; the L=131k row is the meaningful ceiling.
+The OOM marker at L=262k *and* the success at L=196k together carry the
+strongest claim: the HCL kernel takes single-H100 inference from a ~65k
+token wall (stock) to ~200k+ tokens (final), an order-of-magnitude shift
+in usable context length without changing GPU. If L=196608 OOMs as well,
+the headline degrades gracefully to "131k is the single-H100 ceiling"
+which is still 2× the stock path.
 
 ## Commit + tear-down
 
