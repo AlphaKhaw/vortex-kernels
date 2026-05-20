@@ -53,7 +53,7 @@ import os
 import statistics
 from collections import defaultdict
 from collections.abc import Callable
-from dataclasses import asdict, dataclass, field
+from pydantic import BaseModel, Field
 from pathlib import Path
 from typing import Any
 
@@ -128,8 +128,7 @@ LAYER_COLORS: dict[str, str] = {
 LAYER_LABEL_PREFIX = "vk_layer"
 
 
-@dataclass
-class LayerInfo:
+class LayerInfo(BaseModel):
     """
     Per-block record produced by the classifier + profiler.
 
@@ -148,8 +147,7 @@ class LayerInfo:
     cuda_ms: float = 0.0
 
 
-@dataclass
-class RunSummary:
+class RunSummary(BaseModel):
     """
     Everything we know after profiling one (model, seq_len) pair.
 
@@ -192,7 +190,7 @@ class RunSummary:
     per_layer: list[dict[str, Any]]
     unmatched_cuda_ms: float
     unknown_block_classes: list[str]
-    artifacts: dict[str, str] = field(default_factory=dict)
+    artifacts: dict[str, str] = Field(default_factory=dict)
 
 
 def _find_blocks(model: Any) -> tuple[list[nn.Module], str]:
@@ -820,7 +818,9 @@ def run_profile(
         )
 
         layer_breakdown_path = output_dir / f"layer_breakdown_{model_name}_L{seq_len}.json"
-        layer_breakdown_path.write_text(json.dumps([asdict(info) for info in infos], indent=2))
+        layer_breakdown_path.write_text(
+            json.dumps([info.model_dump() for info in infos], indent=2)
+        )
 
         forward_ms_mean = statistics.fmean(per_run_ms) if per_run_ms else 0.0
         forward_ms_std = statistics.stdev(per_run_ms) if len(per_run_ms) > 1 else 0.0
@@ -839,7 +839,7 @@ def run_profile(
             by_category_pct=by_category_pct,
             by_layer_kind_ms=by_layer_kind_ms,
             by_layer_kind_pct=by_layer_kind_pct,
-            per_layer=[asdict(info) for info in infos],
+            per_layer=[info.model_dump() for info in infos],
             unmatched_cuda_ms=max(total_cuda_ms - attributed_ms, 0.0),
             unknown_block_classes=unknown_classes,
             artifacts={
@@ -853,7 +853,7 @@ def run_profile(
         summary.artifacts.update(_render_plots(summary, plots_dir))
 
         summary_path = output_dir / f"summary_{model_name}_L{seq_len}.json"
-        summary_path.write_text(json.dumps(asdict(summary), indent=2))
+        summary_path.write_text(json.dumps(summary.model_dump(), indent=2))
         summary.artifacts["summary"] = str(summary_path)
 
         print(f"  forward: {forward_ms_mean:.1f} ± {forward_ms_std:.1f} ms")
@@ -1018,7 +1018,7 @@ def main() -> None:
                 "enabled_kernels": sorted(enabled),
             }
         ),
-        "summaries": [asdict(s) for s in summaries],
+        "summaries": [s.model_dump() for s in summaries],
     }
     (out_dir / "combined_summary.json").write_text(json.dumps(combined, indent=2))
     combined_plot = _render_combined_plot(summaries, out_dir / "plots")

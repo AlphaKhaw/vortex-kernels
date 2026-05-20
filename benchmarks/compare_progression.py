@@ -15,8 +15,9 @@ Usage:
 
 import argparse
 import json
-from dataclasses import dataclass
 from pathlib import Path
+
+from pydantic import BaseModel
 
 from benchmarks.meta import REPO_ROOT
 
@@ -29,8 +30,7 @@ CONFIG_LABEL: dict[str, str] = {
 }
 
 
-@dataclass
-class Row:
+class Row(BaseModel):
     """
     One (gpu, config, seq_len) measurement extracted from a combined_summary.
 

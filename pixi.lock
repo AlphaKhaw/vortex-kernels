@@ -2098,6 +2098,7 @@ packages:
   - einops>=0.8
   - numpy
   - packaging
+  - pydantic>=2.0
   - pyyaml
   - torch>=2.7,<2.8
   - triton>=3.0 ; sys_platform == 'linux'
