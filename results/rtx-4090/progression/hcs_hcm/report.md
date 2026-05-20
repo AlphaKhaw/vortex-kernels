@@ -77,4 +77,3 @@ Profiled 2 run(s). CUDA times are summed across runs.
 - `layer_kinds_plot`: /home/alpha/Projects/vortex-kernels/results/rtx-4090/progression/hcm_hcs/plots/layer_kinds_evo2_7b_L32768.png
 - `op_categories_plot`: /home/alpha/Projects/vortex-kernels/results/rtx-4090/progression/hcm_hcs/plots/op_categories_evo2_7b_L32768.png
 - `summary`: /home/alpha/Projects/vortex-kernels/results/rtx-4090/progression/hcm_hcs/summary_evo2_7b_L32768.json
-

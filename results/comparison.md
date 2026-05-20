@@ -18,4 +18,3 @@
 - L=8192: base 1163 ms / 18.0 GB -> final 954 ms / 15.3 GB  (1.22x faster, 1.18x mem)
 - L=32768: base 6298 ms / 32.6 GB -> final 4837 ms / 22.7 GB  (1.30x faster, 1.44x mem)
 - L=65536: base OOM; final 11918 ms / 32.1 GB  (memory unlock)
-
