@@ -952,10 +952,27 @@ def main() -> None:
     skipped: list[tuple[str, int, str]] = []
     for model_name in args.models:
         for seq_len in args.seq_lens:
+            if torch.cuda.is_available():
+                pre_alloc = torch.cuda.memory_allocated() / 1e9
+                pre_reserved = torch.cuda.memory_reserved() / 1e9
+                print(
+                    f"  [pre]  {model_name}@L={seq_len}: "
+                    f"alloc={pre_alloc:.2f} GB  reserved={pre_reserved:.2f} GB",
+                    flush=True,
+                )
             try:
                 summaries.append(
                     run_profile(model_name, seq_len, out_dir, args.num_runs, args.warmup, enabled)
                 )
+                _reclaim_gpu_memory()
+                if torch.cuda.is_available():
+                    post_alloc = torch.cuda.memory_allocated() / 1e9
+                    post_reserved = torch.cuda.memory_reserved() / 1e9
+                    print(
+                        f"  [post] {model_name}@L={seq_len}: "
+                        f"alloc={post_alloc:.2f} GB  reserved={post_reserved:.2f} GB",
+                        flush=True,
+                    )
             except torch.cuda.OutOfMemoryError as exc:
                 # Single-GPU OOM on one (model, seq_len) shouldn't kill the
                 # whole sweep. Log, reclaim, continue with the next seq_len.
