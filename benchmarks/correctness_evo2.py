@@ -10,6 +10,10 @@ vortex math) and once with the requested kernel set ON — and reports:
     cosine_sim_last_token     | semantic agreement at the autoregressive step
     cosine_sim_sequence_mean  | per-position cosine sim averaged over the
                                 sequence (catches mid-sequence drift)
+    argmax_match_rate         | fraction of positions where argmax(logits)
+                                matches between stock and triton — the
+                                cleanest answer to "would I sample the same
+                                token here?"
 
 The toggle mechanism mirrors `benchmarks/profile_evo2.py`: each
 `HyenaInferenceEngine` exposes `use_{hcs,hcm,hcl}_kernel` flags that
@@ -104,7 +108,7 @@ def _compare(stock: torch.Tensor, triton: torch.Tensor) -> dict[str, float]:
 
     Returns:
         Dict with max_abs_diff, mean_abs_diff, cosine_sim_last_token,
-        and cosine_sim_sequence_mean.
+        cosine_sim_sequence_mean, and argmax_match_rate.
     """
     assert stock.shape == triton.shape, f"shape mismatch: {stock.shape} vs {triton.shape}"
     a = stock.float()
@@ -112,11 +116,13 @@ def _compare(stock: torch.Tensor, triton: torch.Tensor) -> dict[str, float]:
     diff = (a - b).abs()
     cos_last = torch.nn.functional.cosine_similarity(a[:, -1, :], b[:, -1, :], dim=-1).mean()
     cos_seq = torch.nn.functional.cosine_similarity(a, b, dim=-1).mean()
+    argmax_match = (a.argmax(dim=-1) == b.argmax(dim=-1)).float().mean()
     return {
         "max_abs_diff": diff.max().item(),
         "mean_abs_diff": diff.mean().item(),
         "cosine_sim_last_token": cos_last.item(),
         "cosine_sim_sequence_mean": cos_seq.item(),
+        "argmax_match_rate": argmax_match.item(),
     }
 
 
@@ -161,7 +167,8 @@ def check_one(
         f"  max_abs_diff={cmp['max_abs_diff']:.4e} "
         f"mean_abs_diff={cmp['mean_abs_diff']:.4e} "
         f"cos_last={cmp['cosine_sim_last_token']:.6f} "
-        f"cos_seq={cmp['cosine_sim_sequence_mean']:.6f}",
+        f"cos_seq={cmp['cosine_sim_sequence_mean']:.6f} "
+        f"argmax_match={cmp['argmax_match_rate']:.6f}",
         flush=True,
     )
 
