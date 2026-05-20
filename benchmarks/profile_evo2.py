@@ -73,6 +73,8 @@ from evo2 import Evo2
 from torch.profiler import ProfilerActivity, profile, record_function
 from vortex.model.engine import HyenaInferenceEngine
 
+from benchmarks.meta import default_results_root, run_meta
+
 OP_CATEGORIES: dict[str, tuple[str, ...]] = {
     "fft": ("aten::_fft", "aten::fft_", "cufft"),
     "conv": ("aten::conv1d", "aten::_convolution", "cudnn_conv"),
@@ -190,6 +192,8 @@ class RunSummary:
     total_cuda_ms: float
     forward_ms_mean: float
     forward_ms_std: float
+    peak_memory_bytes: int
+    kernel_launch_count: int
     by_category_ms: dict[str, float]
     by_category_pct: dict[str, float]
     by_layer_kind_ms: dict[str, float]
@@ -781,6 +785,10 @@ def run_profile(
         output_dir.mkdir(parents=True, exist_ok=True)
         trace_path = output_dir / f"trace_{model_name}_L{seq_len}.json"
 
+        # Reset peak-memory tracking after warmup so the headline peak reflects
+        # the timed forwards, not the one-time setup allocations.
+        torch.cuda.reset_peak_memory_stats()
+
         print(f"  profiling ({num_runs} runs)...")
         with profile(
             activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
@@ -791,6 +799,11 @@ def run_profile(
                 with record_function(f"forward_run_{i}"), torch.no_grad():
                     _ = model(input_ids)
                 torch.cuda.synchronize()
+
+        peak_memory_bytes = int(torch.cuda.max_memory_allocated())
+        kernel_launch_count = sum(
+            evt.count for evt in prof.key_averages() if evt.device_time_total > 0
+        )
 
         prof.export_chrome_trace(str(trace_path))
         top_ops_path = output_dir / f"top_ops_{model_name}_L{seq_len}.txt"
@@ -829,6 +842,8 @@ def run_profile(
             total_cuda_ms=total_cuda_ms,
             forward_ms_mean=forward_ms_mean,
             forward_ms_std=forward_ms_std,
+            peak_memory_bytes=peak_memory_bytes,
+            kernel_launch_count=kernel_launch_count,
             by_category_ms=by_category_ms,
             by_category_pct=by_category_pct,
             by_layer_kind_ms=by_layer_kind_ms,
@@ -898,7 +913,15 @@ def main() -> None:
         ),
     )
     p.add_argument("--seq-lens", nargs="+", type=int, default=[8192, 32768])
-    p.add_argument("--output-dir", default="results/baseline_profile")
+    p.add_argument(
+        "--output-dir",
+        default=None,
+        help=(
+            "Output directory for artifacts. Defaults to "
+            "results/<gpu>/baseline_profile/ when --triton is empty, or "
+            "results/<gpu>/progression/<flagset>/ when --triton is set."
+        ),
+    )
     p.add_argument("--num-runs", type=int, default=5)
     p.add_argument("--warmup", type=int, default=3)
     p.add_argument(
@@ -926,7 +949,16 @@ def main() -> None:
     if enabled:
         print(f"profile_evo2: Triton kernels requested: {sorted(enabled)}", flush=True)
 
-    out_dir = Path(args.output_dir)
+    if args.output_dir is not None:
+        out_dir = Path(args.output_dir)
+    elif enabled:
+        # Progression run: name the subfolder after the enabled-flag set, with
+        # "final" reserved for the all-three combination.
+        flagset = "final" if enabled == valid_kernels else "_".join(sorted(enabled))
+        out_dir = default_results_root() / "progression" / flagset
+    else:
+        out_dir = default_results_root() / "baseline_profile"
+
     summaries: list[RunSummary] = []
     skipped: list[tuple[str, int, str]] = []
     for model_name in args.models:
@@ -965,9 +997,19 @@ def main() -> None:
         print("\nAll runs failed. No aggregates to write.", flush=True)
         return
 
-    (out_dir / "combined_summary.json").write_text(
-        json.dumps([asdict(s) for s in summaries], indent=2)
-    )
+    combined = {
+        "run_meta": run_meta(
+            config={
+                "models": args.models,
+                "seq_lens": args.seq_lens,
+                "num_runs": args.num_runs,
+                "warmup": args.warmup,
+                "enabled_kernels": sorted(enabled),
+            }
+        ),
+        "summaries": [asdict(s) for s in summaries],
+    }
+    (out_dir / "combined_summary.json").write_text(json.dumps(combined, indent=2))
     combined_plot = _render_combined_plot(summaries, out_dir / "plots")
     report_path = _write_report(summaries, out_dir)
 

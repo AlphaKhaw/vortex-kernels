@@ -11,7 +11,6 @@ kernel.
 
 import argparse
 import json
-import platform
 from collections.abc import Callable
 from pathlib import Path
 
@@ -19,6 +18,8 @@ import torch
 import torch.nn.functional as F
 import triton
 from vortex.ops.hcs_interface import hcs_depthwise_conv
+
+from benchmarks.meta import default_results_root, run_meta
 
 # evo2_7b HCS layer: hidden_size 4096, hcs_filter_length 7.
 _D: int = 4096
@@ -64,7 +65,7 @@ def _median_ms(fn: Callable[[], object]) -> float:
     return triton.testing.do_bench(fn)  # pyright: ignore[reportReturnType]
 
 
-def _bench_one(L: int) -> dict[str, float]:
+def _bench_one(L: int) -> dict[str, float | int]:
     """
     Benchmark the Triton kernel and the cuDNN baseline at sequence length L.
 
@@ -72,7 +73,8 @@ def _bench_one(L: int) -> dict[str, float]:
         L (int): Sequence length.
 
     Returns:
-        dict[str, float]: Dictionary of results.
+        dict[str, float | int]: One row of timings and peak-memory counters
+        for the (kernel, baseline) pair at ``L``.
     """
     torch.manual_seed(0)
     # torch.randn defaults to float32 -- the dtype the HCS conv runs in.
@@ -80,14 +82,22 @@ def _bench_one(L: int) -> dict[str, float]:
     weight: torch.Tensor = torch.randn(_D, 1, _FIR_LENGTH, device="cuda")
 
     max_diff: float = (hcs_depthwise_conv(u, weight) - _conv1d(u, weight)).abs().max().item()
+
+    torch.cuda.reset_peak_memory_stats()
     triton_ms: float = _median_ms(lambda: hcs_depthwise_conv(u, weight))
+    triton_peak_bytes: int = torch.cuda.max_memory_allocated()
+
+    torch.cuda.reset_peak_memory_stats()
     cudnn_ms: float = _median_ms(lambda: _conv1d(u, weight))
+    cudnn_peak_bytes: int = torch.cuda.max_memory_allocated()
 
     return {
         "seq_len": L,
         "triton_ms": round(triton_ms, 5),
         "cudnn_ms": round(cudnn_ms, 5),
         "speedup": round(cudnn_ms / triton_ms, 3),
+        "triton_peak_bytes": triton_peak_bytes,
+        "cudnn_peak_bytes": cudnn_peak_bytes,
         "max_diff": max_diff,
     }
 
@@ -100,29 +110,35 @@ def main() -> None:
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("results/microbench/hcs.json"),
-        help="Path to write the JSON report.",
+        default=None,
+        help=(
+            "Path to write the JSON report. Defaults to "
+            "results/<gpu>/microbench/hcs.json with <gpu> auto-detected."
+        ),
     )
     args = parser.parse_args()
 
     if not torch.cuda.is_available():
         raise SystemExit("bench_hcs requires a CUDA device")
 
-    rows: list[dict[str, float]] = [_bench_one(L) for L in _SEQ_LENS]
+    output: Path = args.output or default_results_root() / "microbench" / "hcs.json"
+
+    rows: list[dict[str, float | int]] = [_bench_one(L) for L in _SEQ_LENS]
     report = {
-        "kernel": "hcs_depthwise_conv",
-        "device": torch.cuda.get_device_name(0),
-        "torch": torch.__version__,
-        "triton": triton.__version__,
-        "platform": platform.platform(),
-        "dtype": "float32",
-        "hidden_size": _D,
-        "fir_length": _FIR_LENGTH,
+        "run_meta": run_meta(
+            config={
+                "kernel": "hcs_depthwise_conv",
+                "dtype": "float32",
+                "hidden_size": _D,
+                "fir_length": _FIR_LENGTH,
+                "seq_lens": _SEQ_LENS,
+            }
+        ),
         "results": rows,
     }
 
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(report, indent=2) + "\n")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(report, indent=2) + "\n")
 
     print(f"{'seq_len':>8} {'triton_ms':>11} {'cudnn_ms':>10} {'speedup':>9} {'max_diff':>10}")
     for row in rows:
@@ -130,7 +146,7 @@ def main() -> None:
             f"{row['seq_len']:>8} {row['triton_ms']:>11.5f} {row['cudnn_ms']:>10.5f} "
             f"{row['speedup']:>8.3f}x {row['max_diff']:>10.2e}"
         )
-    print(f"\nwrote {args.output}")
+    print(f"\nwrote {output}")
 
 
 if __name__ == "__main__":

@@ -19,13 +19,14 @@ kernels.
 
 import argparse
 import json
-import platform
 from collections.abc import Callable
 from pathlib import Path
 
 import torch
 import triton
 from vortex.ops.hcl_interface import _hcl_compute_filter, hcl_fft_conv
+
+from benchmarks.meta import default_results_root, run_meta
 
 # evo2_7b HCL layer: hidden_size 4096, state_size 16.
 _D: int = 4096
@@ -213,13 +214,18 @@ def main() -> None:
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("results/microbench/hcl.json"),
-        help="Path to write the JSON report.",
+        default=None,
+        help=(
+            "Path to write the JSON report. Defaults to "
+            "results/<gpu>/microbench/hcl.json with <gpu> auto-detected."
+        ),
     )
     args = parser.parse_args()
 
     if not torch.cuda.is_available():
         raise SystemExit("bench_hcl requires a CUDA device")
+
+    output: Path = args.output or default_results_root() / "microbench" / "hcl.json"
 
     rows: list[dict[str, object]] = []
     for L in _SEQ_LENS:
@@ -232,20 +238,21 @@ def main() -> None:
     )
 
     report = {
-        "kernel": "hcl_fft_conv + _hcl_compute_filter",
-        "device": torch.cuda.get_device_name(0),
-        "torch": torch.__version__,
-        "triton": triton.__version__,
-        "platform": platform.platform(),
-        "dtype": "float32",
-        "hidden_size": _D,
-        "state_size": _S,
+        "run_meta": run_meta(
+            config={
+                "kernel": "hcl_fft_conv + _hcl_compute_filter",
+                "dtype": "float32",
+                "hidden_size": _D,
+                "state_size": _S,
+                "seq_lens": _SEQ_LENS,
+            }
+        ),
         "oom_crossover_seq_len": crossover,
         "results": rows,
     }
 
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(report, indent=2) + "\n")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(report, indent=2) + "\n")
 
     print(
         _cell("seq_len", 8)
@@ -290,7 +297,7 @@ def main() -> None:
         )
     else:
         print("\nno OOM crossover in this sweep -- the stock path fit every L")
-    print(f"wrote {args.output}")
+    print(f"wrote {output}")
 
 
 if __name__ == "__main__":
