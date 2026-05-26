@@ -64,7 +64,7 @@ from pydantic import BaseModel, Field
 from torch.profiler import ProfilerActivity, profile, record_function
 from vortex.model.engine import HyenaInferenceEngine
 
-from benchmarks.meta import default_results_root, run_meta
+from benchmarks.meta import model_results_root, run_meta
 
 OP_CATEGORIES: dict[str, tuple[str, ...]] = {
     "fft": ("aten::_fft", "aten::fft_", "cufft"),
@@ -906,7 +906,9 @@ def main() -> None:
         help=(
             "Output directory for artifacts. Defaults to "
             "results/<gpu>/baseline_profile/ when --triton is empty, or "
-            "results/<gpu>/progression/<flagset>/ when --triton is set."
+            "results/<gpu>/progression/<flagset>/ when --triton is set. "
+            "Non-default models are namespaced under results/<gpu>/<model>/ so "
+            "different model sizes never overwrite each other's aggregates."
         ),
     )
     p.add_argument("--num-runs", type=int, default=5)
@@ -947,9 +949,9 @@ def main() -> None:
             if enabled == valid_kernels
             else "_".join(k for k in canonical_order if k in enabled)
         )
-        out_dir = default_results_root() / "progression" / flagset
+        out_dir = model_results_root(args.models) / "progression" / flagset
     else:
-        out_dir = default_results_root() / "baseline_profile"
+        out_dir = model_results_root(args.models) / "baseline_profile"
 
     summaries: list[RunSummary] = []
     skipped: list[tuple[str, int, str]] = []

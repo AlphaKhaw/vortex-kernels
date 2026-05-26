@@ -21,6 +21,7 @@ REPO_ROOT: Path = Path(__file__).resolve().parent.parent
 _GPU_NAME_PATTERNS: tuple[tuple[str, str], ...] = (
     ("4090", "rtx-4090"),
     ("h100", "h100"),
+    ("h200", "h200"),
     ("a100", "a100"),
     ("3090", "rtx-3090"),
     ("l40", "l40"),
@@ -118,3 +119,33 @@ def default_results_root() -> Path:
     Return the per-GPU results root (results/<gpu_slug>/).
     """
     return REPO_ROOT / "results" / gpu_slug()
+
+
+# The model whose artifacts live at the GPU root for backward compatibility;
+# every other model is namespaced beneath it. evo2_7b is the canonical default
+# across the profiler and correctness CLIs.
+DEFAULT_MODEL: str = "evo2_7b"
+
+
+def model_results_root(models: list[str]) -> Path:
+    """
+    Return the per-(GPU, model) results root for a sweep.
+
+    The lone default model maps to the GPU root (results/<gpu_slug>/) so
+    existing artifacts and the comparison tooling keep working unchanged. Any
+    other model, or a multi-model sweep, gets its own subdirectory, so the
+    per-invocation aggregates (combined_summary.json, report.md, plots/) of
+    different model sizes never overwrite each other.
+
+    Args:
+        models (list[str]): The model IDs in the current sweep.
+
+    Returns:
+        Path: results/<gpu_slug>/ for the lone default model, otherwise
+        results/<gpu_slug>/<tag>/ where tag joins the sanitised model IDs.
+    """
+    root = default_results_root()
+    if models == [DEFAULT_MODEL]:
+        return root
+    tag = "-".join(re.sub(r"[^a-z0-9_.]+", "-", m.lower()).strip("-") for m in models)
+    return root / (tag or "models")

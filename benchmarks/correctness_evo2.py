@@ -19,7 +19,8 @@ The toggle mechanism mirrors `benchmarks/profile_evo2.py`: each
 `HyenaInferenceEngine` exposes `use_{hcs,hcm,hcl}_kernel` flags that
 branch into the Triton path when true and the stock path when false.
 
-Artifacts under --output-dir (default: results/<gpu_slug>/correctness/):
+Artifacts under --output-dir (default: results/<gpu_slug>/correctness/, or
+results/<gpu_slug>/<model>/correctness/ for non-default models):
     correctness.json   one record per (model, seq_len) plus run_meta
 
 Usage:
@@ -37,7 +38,7 @@ import torch
 from evo2 import Evo2
 from vortex.model.engine import HyenaInferenceEngine
 
-from benchmarks.meta import default_results_root, run_meta
+from benchmarks.meta import model_results_root, run_meta
 
 
 def _apply_triton_kernels(model: Any, enabled: set[str]) -> int:
@@ -208,7 +209,7 @@ def main() -> None:
             f"--enabled: unknown kernel(s) {sorted(unknown)}; choose from {sorted(valid)}"
         )
 
-    out_dir = args.output_dir or (default_results_root() / "correctness")
+    out_dir = args.output_dir or (model_results_root(args.models) / "correctness")
     out_dir.mkdir(parents=True, exist_ok=True)
 
     results: list[dict[str, Any]] = []
