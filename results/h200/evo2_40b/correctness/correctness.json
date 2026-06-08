@@ -1,0 +1,53 @@
+{
+  "run_meta": {
+    "timestamp": "2026-06-08T06:11:45+00:00",
+    "gpu": "NVIDIA H200",
+    "gpu_slug": "h200",
+    "compute_capability": "9.0",
+    "cuda_version": "12.9",
+    "driver_version": "570.211.01",
+    "torch_version": "2.7.1",
+    "triton_version": "3.3.1",
+    "vortex_sha": "9c54bb3",
+    "vortex_kernels_sha": "be35ab6",
+    "platform": "Linux-6.8.0-90-generic-x86_64-with-glibc2.35",
+    "config": {
+      "models": [
+        "evo2_40b"
+      ],
+      "seq_lens": [
+        8192
+      ],
+      "seed": 0,
+      "enabled_kernels": [
+        "hcl",
+        "hcm",
+        "hcs"
+      ],
+      "comparison": "stock_baseline_vs_kernels_on"
+    }
+  },
+  "results": [
+    {
+      "model": "evo2_40b",
+      "seq_len": 8192,
+      "seed": 0,
+      "enabled_kernels": [
+        "hcl",
+        "hcm",
+        "hcs"
+      ],
+      "logits_shape": [
+        1,
+        8192,
+        512
+      ],
+      "logits_dtype": "torch.bfloat16",
+      "max_abs_diff": 2.4375,
+      "mean_abs_diff": 0.03807666897773743,
+      "cosine_sim_last_token": 0.9999997615814209,
+      "cosine_sim_sequence_mean": 0.999999463558197,
+      "argmax_match_rate": 0.985107421875
+    }
+  ]
+}
