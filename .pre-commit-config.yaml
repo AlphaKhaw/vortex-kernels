@@ -2,12 +2,22 @@
 # Install: `pre-commit install` (one-time).
 # Run manually: `pre-commit run --all-files`.
 repos:
-  # Pre-commit hooks for code hygiene
+  # Pre-commit hooks for code hygiene.
+  #
+  # results/ holds generated benchmark artifacts (PyTorch profiler .txt tables,
+  # .json dumps, .md reports). The content-mutating hygiene hooks below
+  # (trailing-whitespace, end-of-file-fixer, mixed-line-ending) are excluded
+  # from that tree: profiler tables encode column alignment as trailing
+  # whitespace, and json.dump output has no terminal newline, so normalizing
+  # them corrupts the data and re-breaks CI on every benchmark refresh. The
+  # non-mutating validators (check-json, check-added-large-files) still apply.
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
       - id: trailing-whitespace
+        exclude: '^results/'
       - id: end-of-file-fixer
+        exclude: '^results/'
       - id: check-json
       - id: check-shebang-scripts-are-executable
       - id: check-toml
@@ -17,6 +27,7 @@ repos:
       - id: debug-statements
       - id: mixed-line-ending
         args: ['--fix=auto']
+        exclude: '^results/'
 
   # Ruff — full lint (ruleset from pyproject.toml [tool.ruff.lint]) + format.
   # Single source for ruff in the project; the `lint` pixi task delegates
