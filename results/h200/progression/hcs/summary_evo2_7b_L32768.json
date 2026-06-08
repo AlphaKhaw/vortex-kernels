@@ -1,0 +1,249 @@
+{
+  "model": "evo2_7b",
+  "seq_len": 32768,
+  "num_runs": 5,
+  "warmup": 3,
+  "total_cuda_ms": 37130.15629799991,
+  "forward_ms_mean": 1921.656066799991,
+  "forward_ms_std": 11.10370202419856,
+  "peak_memory_bytes": 32638367744,
+  "kernel_launch_count": 28893,
+  "by_category_ms": {
+    "other": 16296.307348999915,
+    "reshape": 209.34074400000054,
+    "elementwise": 2387.3732629999868,
+    "cast_copy": 2489.9476240000286,
+    "conv": 2587.3165340000087,
+    "gemm": 10784.452643999963,
+    "fft": 1539.7589219999993,
+    "attention": 835.659217999998
+  },
+  "by_category_pct": {
+    "other": 43.88968152519667,
+    "reshape": 0.5638024852895034,
+    "elementwise": 6.429742023813101,
+    "cast_copy": 6.705998229622736,
+    "conv": 6.968234965763879,
+    "gemm": 29.044996626046764,
+    "fft": 4.146922812934514,
+    "attention": 2.250621331332808
+  },
+  "by_layer_kind_ms": {
+    "hcl": 4080.2477450000006,
+    "hcm": 2228.1010939999787,
+    "hcs": 1718.2879999999823,
+    "attn": 1569.8934339999955,
+    "other": 0.0
+  },
+  "by_layer_kind_pct": {
+    "hcl": 10.989040046728249,
+    "hcm": 6.000785658206346,
+    "hcs": 4.627742437196639,
+    "attn": 4.228081943421717,
+    "other": 0.0
+  },
+  "per_layer": [
+    {
+      "idx": 0,
+      "kind": "hcs",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 139.33337799999714
+    },
+    {
+      "idx": 1,
+      "kind": "hcm",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 173.40228499999833
+    },
+    {
+      "idx": 2,
+      "kind": "hcl",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 293.4337589999925
+    },
+    {
+      "idx": 3,
+      "kind": "attn",
+      "class_name": "AttentionBlock",
+      "cuda_ms": 221.23071399999554
+    },
+    {
+      "idx": 4,
+      "kind": "hcs",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 138.29871800000313
+    },
+    {
+      "idx": 5,
+      "kind": "hcm",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 174.4560279999973
+    },
+    {
+      "idx": 6,
+      "kind": "hcl",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 290.5964500000008
+    },
+    {
+      "idx": 7,
+      "kind": "hcs",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 135.14750999999907
+    },
+    {
+      "idx": 8,
+      "kind": "hcm",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 173.70510899998916
+    },
+    {
+      "idx": 9,
+      "kind": "hcl",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 292.35768200000297
+    },
+    {
+      "idx": 10,
+      "kind": "attn",
+      "class_name": "AttentionBlock",
+      "cuda_ms": 220.90226700000477
+    },
+    {
+      "idx": 11,
+      "kind": "hcs",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 138.27798100000265
+    },
+    {
+      "idx": 12,
+      "kind": "hcm",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 175.63263899999228
+    },
+    {
+      "idx": 13,
+      "kind": "hcl",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 292.73788700000046
+    },
+    {
+      "idx": 14,
+      "kind": "hcs",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 136.49784599999768
+    },
+    {
+      "idx": 15,
+      "kind": "hcm",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 173.3162750000014
+    },
+    {
+      "idx": 16,
+      "kind": "hcl",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 291.66834499999464
+    },
+    {
+      "idx": 17,
+      "kind": "attn",
+      "class_name": "AttentionBlock",
+      "cuda_ms": 219.3186739999937
+    },
+    {
+      "idx": 18,
+      "kind": "hcs",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 137.9849319999976
+    },
+    {
+      "idx": 19,
+      "kind": "hcm",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 173.3272259999984
+    },
+    {
+      "idx": 20,
+      "kind": "hcl",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 346.26422799999733
+    },
+    {
+      "idx": 21,
+      "kind": "hcs",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 296.9556009999929
+    },
+    {
+      "idx": 22,
+      "kind": "hcm",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 392.3052860000061
+    },
+    {
+      "idx": 23,
+      "kind": "hcl",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 756.8978729999975
+    },
+    {
+      "idx": 24,
+      "kind": "attn",
+      "class_name": "AttentionBlock",
+      "cuda_ms": 457.3363160000009
+    },
+    {
+      "idx": 25,
+      "kind": "hcs",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 297.5525569999977
+    },
+    {
+      "idx": 26,
+      "kind": "hcm",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 396.30741800000004
+    },
+    {
+      "idx": 27,
+      "kind": "hcl",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 761.7952310000069
+    },
+    {
+      "idx": 28,
+      "kind": "hcs",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 298.2394769999944
+    },
+    {
+      "idx": 29,
+      "kind": "hcm",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 395.64882799999555
+    },
+    {
+      "idx": 30,
+      "kind": "hcl",
+      "class_name": "ParallelGatedConvBlock",
+      "cuda_ms": 754.496290000008
+    },
+    {
+      "idx": 31,
+      "kind": "attn",
+      "class_name": "AttentionBlock",
+      "cuda_ms": 451.10546300000044
+    }
+  ],
+  "unmatched_cuda_ms": 27533.62602499995,
+  "unknown_block_classes": [],
+  "artifacts": {
+    "chrome_trace": "/root/vortex-kernels/results/h200/progression/hcs/trace_evo2_7b_L32768.json",
+    "top_ops": "/root/vortex-kernels/results/h200/progression/hcs/top_ops_evo2_7b_L32768.txt",
+    "layer_breakdown": "/root/vortex-kernels/results/h200/progression/hcs/layer_breakdown_evo2_7b_L32768.json",
+    "per_layer_plot": "/root/vortex-kernels/results/h200/progression/hcs/plots/per_layer_evo2_7b_L32768.png",
+    "layer_kinds_plot": "/root/vortex-kernels/results/h200/progression/hcs/plots/layer_kinds_evo2_7b_L32768.png",
+    "op_categories_plot": "/root/vortex-kernels/results/h200/progression/hcs/plots/op_categories_evo2_7b_L32768.png"
+  }
+}

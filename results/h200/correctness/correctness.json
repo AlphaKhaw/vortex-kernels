@@ -1,0 +1,75 @@
+{
+  "run_meta": {
+    "timestamp": "2026-06-08T04:46:42+00:00",
+    "gpu": "NVIDIA H200",
+    "gpu_slug": "h200",
+    "compute_capability": "9.0",
+    "cuda_version": "12.9",
+    "driver_version": "570.211.01",
+    "torch_version": "2.7.1",
+    "triton_version": "3.3.1",
+    "vortex_sha": "9c54bb3",
+    "vortex_kernels_sha": "b84c39c",
+    "platform": "Linux-6.8.0-90-generic-x86_64-with-glibc2.35",
+    "config": {
+      "models": [
+        "evo2_7b"
+      ],
+      "seq_lens": [
+        8192,
+        32768
+      ],
+      "seed": 0,
+      "enabled_kernels": [
+        "hcl",
+        "hcm",
+        "hcs"
+      ],
+      "comparison": "stock_baseline_vs_kernels_on"
+    }
+  },
+  "results": [
+    {
+      "model": "evo2_7b",
+      "seq_len": 8192,
+      "seed": 0,
+      "enabled_kernels": [
+        "hcl",
+        "hcm",
+        "hcs"
+      ],
+      "logits_shape": [
+        1,
+        8192,
+        512
+      ],
+      "logits_dtype": "torch.bfloat16",
+      "max_abs_diff": 3.1796875,
+      "mean_abs_diff": 0.030427750200033188,
+      "cosine_sim_last_token": 0.9999997615814209,
+      "cosine_sim_sequence_mean": 0.999797523021698,
+      "argmax_match_rate": 0.9998779296875
+    },
+    {
+      "model": "evo2_7b",
+      "seq_len": 32768,
+      "seed": 0,
+      "enabled_kernels": [
+        "hcl",
+        "hcm",
+        "hcs"
+      ],
+      "logits_shape": [
+        1,
+        32768,
+        512
+      ],
+      "logits_dtype": "torch.bfloat16",
+      "max_abs_diff": 1.935546875,
+      "mean_abs_diff": 0.029179707169532776,
+      "cosine_sim_last_token": 0.9999997615814209,
+      "cosine_sim_sequence_mean": 0.9999953508377075,
+      "argmax_match_rate": 0.999969482421875
+    }
+  ]
+}
