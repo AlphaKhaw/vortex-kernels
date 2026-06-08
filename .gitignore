@@ -213,11 +213,13 @@ __marimo__/
 .hf_cache/
 profiler_output/
 chrome_trace_*.json
-# Keep results/*.json committed for reproducibility; ignore scratch and the
-# multi-MB chrome-tracing dumps -- the JSON summaries + plots suffice.
+# Keep results/*.json + report.md committed for reproducibility; ignore scratch,
+# the multi-MB chrome-tracing dumps, and the regenerable plots -- the JSON
+# summaries and reports are the source of truth, plots rebuild from them.
 results/scratch/
 results/**/*.tmp
 results/**/trace_*.json
+results/**/plots/
 
 # Claude Code — everything under .claude/ is local-only since the repo is
 # public. Sync the vortex-kernels-dev skill between dev machines manually.
